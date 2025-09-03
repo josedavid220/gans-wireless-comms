@@ -4,4 +4,21 @@ version = "0.1.0"
 description = "A project for exploring GANs in wireless communications."
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "ipykernel>=6.30.1",
+    "lightning>=2.5.3",
+    "litmodels>=0.1.8",
+    "matplotlib>=3.10.5",
+    "numpy>=2.3.2",
+    "scipy>=1.16.1",
+    "seaborn>=0.13.2",
+    "tensorboard>=2.20.0",
+    "torchvision>=0.23.0",
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find] # This installs the packages in the src folder
+where = ["src"]
