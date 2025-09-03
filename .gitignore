@@ -201,3 +201,15 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Lightning
+lightning_logs/
+
+# Logs
+logs/*
+
+# Exceptions
+
+# Results
+results/*
+!*.gitkeep
