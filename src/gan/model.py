@@ -17,8 +17,8 @@ class Generator(nn.Module):
             nn.Linear(32, 1),
         )
 
-    def forward(self, z):
-        return self.model(z)
+    def forward(self, z, scale=1):
+        return scale*self.model(z)
 
 
 class Discriminator(nn.Module):
@@ -46,8 +46,8 @@ class GAN(L.LightningModule):
         self.automatic_optimization = False  # manual optimization
         self.g_every_k_steps = g_every_k_steps
 
-    def forward(self, z):
-        return self.generator(z)
+    def forward(self, z, scale=1):
+        return self.generator(z, scale)
 
     def adversarial_loss(self, y_hat, y):
         return nn.BCELoss()(y_hat, y)
