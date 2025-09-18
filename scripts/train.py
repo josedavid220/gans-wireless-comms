@@ -1,4 +1,4 @@
-from gan import GAN
+from gans import GAN
 from local_datasets.rayleigh_dataset import RayleighDataset
 from torch.utils.data import DataLoader
 import lightning as L
