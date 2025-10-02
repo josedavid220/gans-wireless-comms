@@ -22,3 +22,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find] # This installs the packages in the src folder
 where = ["src"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "ruff>=0.13.2",
+]
