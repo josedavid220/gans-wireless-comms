@@ -1,76 +1,56 @@
 import torch
 import torch.nn as nn
-import lightning as L
+import lightning as L   
 from .components import Generator, Discriminator
+from .base_gan import BaseGAN
+import torch.nn.functional as F
 
-torch.set_float32_matmul_precision('medium')
+torch.set_float32_matmul_precision("medium")
 
-class GAN(L.LightningModule):
+
+class GAN(BaseGAN):
     def __init__(self, latent_dim=100, g_every_k_steps=1):
-        super().__init__()
-        self.latent_dim = latent_dim
+        super().__init__(latent_dim=latent_dim, g_every_k_steps=g_every_k_steps)
         self.generator = Generator(latent_dim)
         self.discriminator = Discriminator()
-        self.automatic_optimization = False  # manual optimization
-        self.g_every_k_steps = g_every_k_steps
+        self.criterion = nn.BCEWithLogitsLoss()  # more stable than BCELoss with sigmoid
+        # TODO: make these hyperparams configurable
+        self.lr = 0.0002
+        self.betas = (0.5, 0.999)
 
-    def forward(self, z, scale=1):
-        return self.generator(z, scale)
+    def forward(self, z):
+        return self.generator(z)
 
-    def adversarial_loss(self, y_hat, y):
-        return nn.BCELoss()(y_hat, y)
+    def compute_discriminator_loss(self, real_samples, fake_samples):
+        real_logits = self.discriminator(real_samples)
+        fake_logits = self.discriminator(fake_samples)
+        logits = torch.cat([real_logits, fake_logits], dim=0)
+        labels = torch.cat(
+            [torch.ones_like(real_logits), torch.zeros_like(fake_logits)], dim=0
+        )
 
-    def training_step(self, batch, batch_idx):
-        g_opt, d_opt = self.optimizers()
+        return self.criterion(logits, labels)
 
-        # =====================
-        # Train Discriminator
-        # =====================
-        z = torch.randn(batch.shape[0], self.latent_dim, device=self.device)
-        generated_data = self(z).detach()  # detach so G is not updated here
-        data = torch.cat((batch, generated_data))
-
-        real_labels = torch.ones(batch.shape[0], 1, device=self.device)
-        generated_labels = torch.zeros(batch.shape[0], 1, device=self.device)
-        labels = torch.cat((real_labels, generated_labels))
-
-        d_loss = self.adversarial_loss(self.discriminator(data), labels)
-
-        d_opt.zero_grad()
-        self.manual_backward(d_loss)
-        d_opt.step()
-        self.log("d_loss", d_loss, prog_bar=True, on_step=True, on_epoch=False)
-
-        # =====================
-        # Train Generator (every k steps)
-        # =====================
-        if (batch_idx + 1) % self.g_every_k_steps == 0:
-            z = torch.randn(batch.shape[0], self.latent_dim, device=self.device)
-            generated_data = self(z)
-            valid_labels = torch.ones(batch.shape[0], 1, device=self.device)
-
-            g_loss = self.adversarial_loss(
-                self.discriminator(generated_data), valid_labels
-            )
-            g_opt.zero_grad()
-            self.manual_backward(g_loss)
-            g_opt.step()
-            self.log("g_loss", g_loss, prog_bar=True, on_step=True, on_epoch=False)
+    def compute_generator_loss(self, fake_samples):
+        fake_logits = self.discriminator(fake_samples)
+        return self.criterion(fake_logits, torch.ones_like(fake_logits))
 
     def configure_optimizers(self):
-        opt_g = torch.optim.Adam(self.generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
-        opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999))
+        opt_g = torch.optim.Adam(
+            self.generator.parameters(), lr=self.lr, betas=self.betas
+        )
+        opt_d = torch.optim.Adam(
+            self.discriminator.parameters(), lr=self.lr, betas=self.betas
+        )
         return opt_g, opt_d
-    
+
     def validation_step(self, batch, batch_idx):
-        # Generate fake samples
         z = torch.randn(batch.shape[0], self.latent_dim, device=self.device)
         fake_samples = self(z).detach()
 
         with torch.no_grad():
-            real_probs = self.discriminator(batch).mean().item()
-            fake_probs = self.discriminator(fake_samples).mean().item()
+            real_prob = F.sigmoid(self.discriminator(batch)).mean().item()
+            fake_prob = F.sigmoid(self.discriminator(fake_samples)).mean().item()
 
-        self.log("real_prob", real_probs, prog_bar=True)
-        self.log("fake_prob", fake_probs, prog_bar=True)
-
+        self.log("real_prob", real_prob, prog_bar=True)
+        self.log("fake_prob", fake_prob, prog_bar=True)
