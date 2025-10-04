@@ -1,6 +1,8 @@
 import torch
 import lightning as L
 from abc import ABC, abstractmethod
+import torch.nn.init as init
+import torch.nn as nn
 
 
 class BaseGAN(L.LightningModule, ABC):
@@ -9,6 +11,12 @@ class BaseGAN(L.LightningModule, ABC):
         self.latent_dim = latent_dim
         self.g_every_k_steps = g_every_k_steps
         self.automatic_optimization = False
+        
+    def _init_weights(self, module):
+            if isinstance(module, nn.Linear):
+                init.xavier_uniform_(module.weight)
+                if module.bias is not None:
+                    init.constant_(module.bias, 0)
 
     @abstractmethod
     def compute_discriminator_loss(self, real_samples, fake_samples):
