@@ -1,5 +1,8 @@
 .PHONY: test lint format build
 
+train:
+	uv run python scripts/train_gan.py
+
 test:
 	uv run pytest
 
@@ -11,3 +14,6 @@ format:
 
 build:
 	uv build
+
+install-hooks:
+	uv run pre-commit install

@@ -10,6 +10,7 @@ dependencies = [
     "litmodels>=0.1.8",
     "matplotlib>=3.10.5",
     "numpy>=2.3.2",
+    "pre-commit>=4.3.0",
     "scipy>=1.16.1",
     "seaborn>=0.13.2",
     "tensorboard>=2.20.0",
