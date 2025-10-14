@@ -16,6 +16,7 @@ class WGAN_GP(BaseGAN):
         self.lr = 0.0002
         self.betas = (0.5, 0.999)
 
+        self.save_hyperparameters()
         self.apply(self._init_weights)
 
     def forward(self, z):

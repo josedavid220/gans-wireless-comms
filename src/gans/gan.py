@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import lightning as L
 from .components import Generator, Discriminator
 from .base_gan import BaseGAN
 import torch.nn.functional as F
@@ -18,6 +17,7 @@ class GAN(BaseGAN):
         self.lr = 0.0002
         self.betas = (0.5, 0.999)
 
+        self.save_hyperparameters()
         self.apply(self._init_weights)
 
     def forward(self, z):
