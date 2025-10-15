@@ -1,4 +1,4 @@
-from gans import GAN
+from gans import GAN, WGAN_GP
 import matplotlib.pyplot as plt
 import torch
 import numpy as np
@@ -6,29 +6,59 @@ import seaborn as sns
 from config import get_args
 from scipy import stats
 import json
-from datetime import datetime
 import os
 import os.path as path
 
 args = get_args()
 
 NUM_SAMPLES = args.num_samples
-SCALE = args.scale
-CKPT_PATH = args.ckpt_path
 TESTS_SAVE_PATH = args.tests_save_path
 PRECISION = 8
 DEVICE = "cpu"
+GAN_TYPE = args.gan_type
+VERSION = args.version
+DATASET = args.dataset
 
-model = GAN.load_from_checkpoint(CKPT_PATH).to(DEVICE)
-rng = np.random.default_rng(0)
+version_dir = path.join("..", "logs", DATASET, GAN_TYPE, f"version_{VERSION}")
+ckpt_dir = path.join(version_dir, "checkpoints")
+theoretical_params_path = path.join(version_dir, "distribution_params.json")
+
+ckpt_files = [f for f in os.listdir(ckpt_dir) if f.endswith(".ckpt")]
+if not ckpt_files:
+    raise FileNotFoundError(f"No checkpoint files found in {ckpt_dir}")
+
+CKPT_PATH = path.join(ckpt_dir, ckpt_files[0])
 
 
-def compute_gof_tests(samples, dist=stats.rayleigh, statistic="ks", n_mc_samples=1000):
+def get_model():
+    match GAN_TYPE:
+        case "gan":
+            model = GAN
+        case "wgan_gp":
+            model = WGAN_GP
+        case _:
+            raise ValueError(f"Unsupported GAN type: {GAN_TYPE}")
+
+    return model.load_from_checkpoint(CKPT_PATH).to(DEVICE)
+
+
+model = get_model()
+
+
+def compute_gof_tests(samples, dist_name="rayleigh", statistic="ks", n_mc_samples=1000):
+    match dist_name:
+        case "rayleigh":
+            dist = stats.rayleigh
+        case "nakagami":
+            dist = stats.nakagami
+        case _:
+            raise ValueError(f"Unsupported distribution: {dist_name}")
+
+    rng = np.random.default_rng(0)
     res = stats.goodness_of_fit(
         dist=dist,
         data=samples,
         statistic=statistic,
-        known_params={"loc": 0},
         n_mc_samples=n_mc_samples,
         rng=rng,
     )
@@ -36,25 +66,30 @@ def compute_gof_tests(samples, dist=stats.rayleigh, statistic="ks", n_mc_samples
     return res
 
 
+with open(theoretical_params_path, "r") as f:
+    theoretical_params = json.load(f)
+
 tests = ["ks", "ad"]
 results = {
     "model_ckpt": path.abspath(CKPT_PATH),
+    "dataset": DATASET,
+    "gan_type": GAN_TYPE,
     "generated_samples": NUM_SAMPLES,
-    "theoretical_scale": SCALE,
-    "tests": dict()
+    "theoretical_params_path": theoretical_params,
+    "tests": dict(),
 }
 
 with torch.no_grad():
     z = torch.randn(NUM_SAMPLES, model.latent_dim).to(DEVICE)
-    samples = model(z, SCALE).squeeze().to(DEVICE)
+    samples = model(z).squeeze().to(DEVICE)
 
 print("Starting tests...")
 for test in tests:
-    result = compute_gof_tests(samples)
+    result = compute_gof_tests(samples, dist_name=DATASET, statistic=test)
     results["tests"][test] = {
         "statistic": round(result.statistic, PRECISION),
         "pvalue": round(result.pvalue, PRECISION),
-        "estimated-scale": round(result.fit_result.params.scale, PRECISION),
+        "estimated-params": result.fit_result.params._asdict(),
     }
 
 print(results)
@@ -62,8 +97,8 @@ print(results)
 if not path.exists(TESTS_SAVE_PATH):
     os.makedirs(TESTS_SAVE_PATH, exist_ok=True)
 
-date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-results_dir = path.join(TESTS_SAVE_PATH, date)
+# date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+results_dir = path.join(TESTS_SAVE_PATH, DATASET, GAN_TYPE, f"version_{VERSION}")
 os.makedirs(results_dir, exist_ok=True)
 file_save_path = path.join(results_dir, "gof_tests.json")
 
@@ -74,66 +109,61 @@ print(f"Saved tests results to {file_save_path}")
 
 print("Generating plots...")
 
-def generate_distribution_subplots(num_samples, scales):
-    linewidth = 1.5
-    with torch.no_grad():
-        fig, axes = plt.subplots(
-            len(scales) // 2,
-            2,
-            figsize=(20, 5 * len(scales) // 2),
-            sharey=True,
-            # sharex=True,
-        )
-        if len(scales) == 1:
-            axes = [axes]
-        else:
-            axes = axes.flatten()
 
-        for i, scale in enumerate(scales):
-            z = torch.randn(num_samples, MODEL.latent_dim)
-            generated_samples = MODEL(z, scale=scale)
-            x = np.linspace(0, max(generated_samples), 100)
-            pdf = rayleigh.pdf(x, scale=scale)
-            axes[i].plot(x, pdf, "#1f78b4", linewidth=linewidth)
-            # axes[i].set_label(rf"Theoretical Rayleigh PDF ($\sigma = {scale:.2f}$)")
-            sns.histplot(
-                generated_samples.numpy().flatten(),
-                stat="density",
-                kde=False,
-                # label="Sample Distribution",
-                ax=axes[i],
-                color="orange",
-                alpha=0.1,
-            )
-            sns.kdeplot(
-                generated_samples.numpy().flatten(),
-                color="#e31a1c",
-                # label='KDE estimation',
-                ax=axes[i],
-                linewidth=linewidth,
-                # fill=True,
-            )
-            # axes[i].legend()
-            axes[i].set_title(rf"$\sigma = {scale:.2f}$")
-            axes[i].set_xlim([0, 10])
+def plot_distribution_comparison(samples, dist_name, theoretical_params, save_path):
+    """Generate a comparison plot showing histogram, KDE, and theoretical distribution."""
+    plt.figure(figsize=(10, 6))
 
-        fig.suptitle("Rayleigh Distribution Approximation by GAN", fontsize=16)
-        fig.legend(
-            labels=[
-                "Theoretical Rayleigh PDF",
-                "KDE estimation",
-                "Sample Distribution",
-            ],
-            loc="upper center",
-            ncol=3,
-            bbox_to_anchor=(0.5, 0.95),
-            fontsize=12,
-        )
-        plt.show()
+    # Convert samples to numpy for plotting
+    samples_np = samples
+
+    # Create histogram with density=True
+    sns.histplot(
+        samples_np,
+        alpha=0.6,
+        color="skyblue",
+        label="Generated Samples",
+        stat="density",
+    )
+
+    # Add KDE plot
+    sns.kdeplot(samples_np, color="darkblue", linewidth=2, label="KDE")
+
+    # Plot theoretical distribution
+    x_range = np.linspace(0, max(samples_np) * 1.1, 1000)
+
+    if dist_name == "rayleigh":
+        theoretical_pdf = stats.rayleigh.pdf(x_range, **theoretical_params)
+    elif dist_name == "nakagami":
+        theoretical_pdf = stats.nakagami.pdf(x_range, **theoretical_params)
+
+    plt.plot(
+        x_range, theoretical_pdf, "r-", linewidth=2, label="Theoretical Distribution"
+    )
+
+    # Styling
+    plt.xlabel("Value", fontsize=12)
+    plt.ylabel("Density", fontsize=12)
+    plt.title(
+        f"{dist_name.capitalize()} Distribution Comparison",
+        fontsize=14,
+        fontweight="bold",
+    )
+    plt.legend(fontsize=11)
+    plt.grid(True, alpha=0.3)
+
+    # Remove top and right spines
+    sns.despine()
+
+    # Tight layout
+    plt.tight_layout()
+
+    # Save the plot
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.close()
 
 
-# generate_distribution_subplots(
-#     # NUM_SAMPLES, scales=[np.random.random() * 10 for _ in range(6)]
-#     NUM_SAMPLES,
-#     scales=[i for i in range(1, 5)],
-# )
+# Generate and save the comparison plot
+plot_save_path = path.join(results_dir, "distribution_comparison.png")
+plot_distribution_comparison(samples, DATASET, theoretical_params, plot_save_path)
+print(f"Saved distribution comparison plot to {plot_save_path}")

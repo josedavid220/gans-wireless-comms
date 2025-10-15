@@ -5,6 +5,7 @@ import lightning as L
 from lightning.pytorch.loggers import TensorBoardLogger
 from config import get_args
 import json
+import os
 
 args = get_args()
 
@@ -76,9 +77,15 @@ train_dataloader = get_dataloader(train_dataset, batch_size=BATCH_SIZE)
 val_dataset = get_dataset(num_samples=NUM_SAMPLES_VAL, seed=0)
 val_dataloader = get_dataloader(val_dataset, batch_size=NUM_SAMPLES_VAL)
 
-
-logger = TensorBoardLogger(save_dir="../logs", name=DATASET)
+logger = TensorBoardLogger(save_dir="../logs", name=f"{DATASET}/{GAN_TYPE}")
 trainer = L.Trainer(max_epochs=MAX_EPOCHS, accelerator="auto", logger=logger)
 trainer.fit(
     model=model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader
 )
+
+# Save distribution parameters to the logger directory
+logger_dir = f"../logs/{DATASET}/{GAN_TYPE}/version_{trainer.logger.version}"
+os.makedirs(logger_dir, exist_ok=True)
+
+with open(os.path.join(logger_dir, "distribution_params.json"), "w") as f:
+    json.dump(distribution_params, f, indent=2)
