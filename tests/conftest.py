@@ -3,6 +3,8 @@
 import pytest
 import torch
 import numpy as np
+from src.local_datasets.rayleigh_dataset import RayleighDataset
+from torch.utils.data import DataLoader
 
 
 @pytest.fixture
@@ -36,3 +38,17 @@ def batch_size():
 def num_samples():
     """Standard number of samples for testing datasets."""
     return 100
+
+
+@pytest.fixture
+def train_dataset(num_samples):
+    """Small test dataset for training tests."""
+    return RayleighDataset(num_samples=num_samples, scale=1.0, seed=42)
+
+
+@pytest.fixture
+def train_dataloader(train_dataset, batch_size):
+    """Test dataloader for training tests."""
+    return DataLoader(
+        train_dataset, batch_size=batch_size, shuffle=False, num_workers=0
+    )

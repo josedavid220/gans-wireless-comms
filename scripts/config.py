@@ -1,10 +1,11 @@
 import argparse
 
+
 def get_args():
     parser = argparse.ArgumentParser(
         description="Train a GAN to approximate a Rayleigh distribution"
     )
-    
+
     # ------------------- General  parameters -------------------
     parser.add_argument(
         "--logs_dir",
@@ -12,8 +13,31 @@ def get_args():
         default="../logs",
         help="Directory to save logs and model checkpoints",
     )
-    
+
     # ------------------- Training parameters -------------------
+    parser.add_argument(
+        "--gan_type",
+        type=str,
+        default="gan",
+        help="Type of GAN to use",
+        choices=["gan", "wgan_gp"],
+    )
+
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default="rayleigh",
+        help="Dataset of the target distribution",
+        choices=["rayleigh", "nakagami"],
+    )
+
+    parser.add_argument(
+        "--distribution_params",
+        type=str,
+        default="{'scale': 1.0}",
+        help="Parameters of the target distribution in dictionary format",
+    )
+
     parser.add_argument(
         "--batch_size",
         type=int,
@@ -35,13 +59,20 @@ def get_args():
         default=3,
         help="Number of steps to wait for updating the generator",
     )
-    
+
     parser.add_argument(
         "--latent_dim",
         "-d",
         type=int,
         default=1000,
         help="Latent dimension for the generator",
+    )
+
+    parser.add_argument(
+        "--lambda_gp",
+        type=float,
+        default=10.0,
+        help="Gradient penalty coefficient for WGAN-GP",
     )
 
     parser.add_argument(
@@ -57,22 +88,15 @@ def get_args():
         default=4,
         help="Number of workers to use",
     )
-    
+
     # ------------------- Testing parameters -------------------
     parser.add_argument(
-        "--scale",
-        "-s",
-        type=int,
-        default=1,
-        help="The scale paramter for the Rayleigh distribution",
-    )
-    
-    parser.add_argument(
-        "--ckpt_path",
+        "--version",
+        "-v",
         type=str,
-        help="Path to a model checkpoint for testing",
+        help="Checkpoint version for testing",
     )
-    
+
     parser.add_argument(
         "--tests_save_path",
         type=str,
