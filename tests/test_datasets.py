@@ -28,11 +28,15 @@ class TestRayleighDataset:
             assert sample.shape == (1,)
             assert sample.dtype == torch.float32
 
-    def test_reproducibility(self, num_samples):
+    def test_reproducibility(self, num_samples, random_seed):
         """Test that the dataset generates reproducible results."""
         scale = 1.5
-        dataset1 = RayleighDataset(num_samples=num_samples, scale=scale)
-        dataset2 = RayleighDataset(num_samples=num_samples, scale=scale)
+        dataset1 = RayleighDataset(
+            num_samples=num_samples, scale=scale, seed=random_seed
+        )
+        dataset2 = RayleighDataset(
+            num_samples=num_samples, scale=scale, seed=random_seed
+        )
 
         # Should be identical due to fixed seed
         torch.testing.assert_close(dataset1.samples, dataset2.samples)
@@ -64,12 +68,16 @@ class TestNakagamiDataset:
             assert sample.shape == (1,)
             assert sample.dtype == torch.float32
 
-    def test_reproducibility(self, num_samples):
+    def test_reproducibility(self, num_samples, random_seed):
         """Test that the dataset generates reproducible results."""
         nu = 1.5
         scale = 2.0
-        dataset1 = NakagamiDataset(num_samples=num_samples, nu=nu, scale=scale)
-        dataset2 = NakagamiDataset(num_samples=num_samples, nu=nu, scale=scale)
+        dataset1 = NakagamiDataset(
+            num_samples=num_samples, nu=nu, scale=scale, seed=random_seed
+        )
+        dataset2 = NakagamiDataset(
+            num_samples=num_samples, nu=nu, scale=scale, seed=random_seed
+        )
 
         # Should be identical due to fixed seed
         torch.testing.assert_close(dataset1.samples, dataset2.samples)
