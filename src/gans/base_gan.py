@@ -178,12 +178,17 @@ class BaseGAN(L.LightningModule, ABC):
             theoretical_pdf = stats.nakagami.pdf(x_range, **self.distribution_params)
 
         if theoretical_pdf is not None:
+            # Format distribution parameters for display
+            params_str = ", ".join(
+                [f"{k}={v:.2f}" for k, v in self.distribution_params.items()]
+            )
+
             plt.plot(
                 x_range,
                 theoretical_pdf,
                 "r-",
                 linewidth=2,
-                label="Theoretical Distribution",
+                label=f"Theoretical {self.distribution_name} ({params_str})",
             )
 
         # Styling
