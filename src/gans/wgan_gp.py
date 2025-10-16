@@ -7,8 +7,22 @@ torch.set_float32_matmul_precision("medium")
 
 
 class WGAN_GP(BaseGAN):
-    def __init__(self, latent_dim=100, g_every_k_steps=1, lambda_gp=10.0):
-        super().__init__(latent_dim=latent_dim, g_every_k_steps=g_every_k_steps)
+    def __init__(
+        self,
+        latent_dim=100,
+        g_every_k_steps=1,
+        lambda_gp=10.0,
+        distribution_name=None,
+        distribution_params=None,
+        num_test_samples=1000,
+    ):
+        super().__init__(
+            latent_dim=latent_dim,
+            g_every_k_steps=g_every_k_steps,
+            distribution_name=distribution_name,
+            distribution_params=distribution_params,
+            num_test_samples=num_test_samples,
+        )
         self.generator = Generator(latent_dim)
         self.discriminator = Critic()
         self.lambda_gp = lambda_gp

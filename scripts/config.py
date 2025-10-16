@@ -24,10 +24,10 @@ def get_args():
     )
 
     parser.add_argument(
-        "--dataset",
+        "--distribution",
         type=str,
         default="rayleigh",
-        help="Dataset of the target distribution",
+        help="Name of the target distribution",
         choices=["rayleigh", "nakagami"],
     )
 
@@ -90,6 +90,13 @@ def get_args():
     )
 
     # ------------------- Testing parameters -------------------
+    parser.add_argument(
+        "--num_test_samples",
+        type=int,
+        default=10000,
+        help="Number of samples to generate for the testing dataset",
+    )
+
     parser.add_argument(
         "--version",
         "-v",

@@ -5,15 +5,15 @@ import lightning as L
 from lightning.pytorch.loggers import TensorBoardLogger
 from config import get_args
 import json
-import os
 
 args = get_args()
 
-DATASET = args.dataset
+DISTRIBUTION = args.distribution
 GAN_TYPE = args.gan_type
 LATENT_DIM = args.latent_dim
 NUM_SAMPLES = args.num_samples
 NUM_SAMPLES_VAL = args.num_samples // 10
+NUM_TEST_SAMPLES = args.num_test_samples
 BATCH_SIZE = args.batch_size
 G_EVERY_K_STEPS = args.g_every_k_steps
 MAX_EPOCHS = args.epochs
@@ -34,6 +34,9 @@ def get_model():
     model_params = {
         "latent_dim": LATENT_DIM,
         "g_every_k_steps": G_EVERY_K_STEPS,
+        "distribution_name": DISTRIBUTION,
+        "distribution_params": distribution_params,
+        "num_test_samples": NUM_TEST_SAMPLES,
     }
 
     match GAN_TYPE:
@@ -54,13 +57,13 @@ def get_dataset(num_samples, seed: int | None):
         **distribution_params,
     }
 
-    match DATASET:
+    match DISTRIBUTION:
         case "rayleigh":
             dataset = RayleighDataset
         case "nakagami":
             dataset = NakagamiDataset
         case _:
-            raise ValueError(f"Unsupported dataset: {DATASET}")
+            raise ValueError(f"Unsupported distribution: {DISTRIBUTION}")
 
     return dataset(**dataset_params)
 
@@ -77,15 +80,14 @@ train_dataloader = get_dataloader(train_dataset, batch_size=BATCH_SIZE)
 val_dataset = get_dataset(num_samples=NUM_SAMPLES_VAL, seed=0)
 val_dataloader = get_dataloader(val_dataset, batch_size=NUM_SAMPLES_VAL)
 
-logger = TensorBoardLogger(save_dir="../logs", name=f"{DATASET}/{GAN_TYPE}")
+logger = TensorBoardLogger(save_dir="../logs", name=f"{DISTRIBUTION}/{GAN_TYPE}")
 trainer = L.Trainer(max_epochs=MAX_EPOCHS, accelerator="auto", logger=logger)
 trainer.fit(
     model=model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader
 )
 
-# Save distribution parameters to the logger directory
-logger_dir = f"../logs/{DATASET}/{GAN_TYPE}/version_{trainer.logger.version}"
-os.makedirs(logger_dir, exist_ok=True)
-
-with open(os.path.join(logger_dir, "distribution_params.json"), "w") as f:
-    json.dump(distribution_params, f, indent=2)
+# Run tests after training
+print("Running goodness-of-fit tests...")
+# Maybe will need to add a custom test dataloader in the future
+# for empiric distributions. For now, it's just there to avoid errors.
+trainer.test(ckpt_path="best", dataloaders=val_dataloader)
