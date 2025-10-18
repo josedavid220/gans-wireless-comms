@@ -156,7 +156,7 @@ class BaseGAN(L.LightningModule, ABC):
         if not self.distribution_name:
             return
 
-        plt.figure(figsize=(10, 6))
+        plt.figure(figsize=(10, 6), dpi=300)
 
         # Histogram and KDE of generated samples
         sns.histplot(
@@ -204,5 +204,12 @@ class BaseGAN(L.LightningModule, ABC):
         sns.despine()
         plt.tight_layout()
 
-        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        # Log the figure to the logger before saving
+        self.trainer.logger.experiment.add_figure(
+            "distribution_comparison",
+            plt.gcf(),
+            close=False,
+        )
+
+        plt.savefig(save_path, bbox_inches="tight")
         plt.close()
