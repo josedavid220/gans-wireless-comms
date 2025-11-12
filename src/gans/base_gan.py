@@ -57,11 +57,19 @@ class BaseGAN(L.LightningModule, ABC):
         if (batch_idx + 1) % self.g_every_k_steps == 0:
             z = torch.randn(batch.shape[0], self.latent_dim, device=self.device)
             generated_data = self(z)
-
             g_loss = self.compute_generator_loss(generated_data)
+
+            # freeze D while updating G
+            for p in self.discriminator.parameters():
+                p.requires_grad_(False)
+
             g_opt.zero_grad()
             self.manual_backward(g_loss)
             g_opt.step()
+
+            for p in self.discriminator.parameters():
+                p.requires_grad_(True)
+
             self.log("g_loss", g_loss, prog_bar=True, on_step=True, on_epoch=False)
 
     def test_step(self, batch, batch_idx):
