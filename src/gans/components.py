@@ -12,6 +12,7 @@ class Generator(nn.Module):
             nn.Linear(64, 32),
             nn.ReLU(),
             nn.Linear(32, 1),
+            nn.Softplus(beta=1),
         )
 
     def forward(self, z):
