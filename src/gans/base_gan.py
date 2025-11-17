@@ -45,6 +45,9 @@ class BaseGAN(L.LightningModule, ABC):
     def compute_generator_loss(self, fake_samples) -> torch.Tensor:
         pass
 
+    def forward(self, z, *args):
+        return self.generator(z, *args)
+
     def training_step(self, batch, batch_idx):
         g_opt, d_opt = self.optimizers()  # type: ignore
 

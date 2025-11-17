@@ -33,9 +33,6 @@ class WGAN_GP(BaseGAN):
         self.save_hyperparameters()
         self.apply(self._init_weights)
 
-    def forward(self, z):
-        return self.generator(z)
-
     def compute_gradient_penalty(self, real_samples, fake_samples):
         batch_size = real_samples.size(0)
 

@@ -33,9 +33,6 @@ class GAN(BaseGAN):
         self.save_hyperparameters()
         self.apply(self._init_weights)
 
-    def forward(self, z):
-        return self.generator(z)
-
     def compute_discriminator_loss(self, real_samples, fake_samples):
         real_logits = self.discriminator(real_samples)
         fake_logits = self.discriminator(fake_samples)
