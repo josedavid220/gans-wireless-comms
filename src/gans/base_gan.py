@@ -28,6 +28,9 @@ class BaseGAN(L.LightningModule, ABC):
         self.distribution_params = distribution_params or {}
         self.num_test_samples = num_test_samples
 
+        self.generator: nn.Module
+        self.discriminator: nn.Module
+
     def _init_weights(self, module):
         if isinstance(module, nn.Linear):
             init.xavier_uniform_(module.weight)
@@ -35,15 +38,15 @@ class BaseGAN(L.LightningModule, ABC):
                 init.constant_(module.bias, 0)
 
     @abstractmethod
-    def compute_discriminator_loss(self, real_samples, fake_samples):
+    def compute_discriminator_loss(self, real_samples, fake_samples) -> torch.Tensor:
         pass
 
     @abstractmethod
-    def compute_generator_loss(self, fake_samples):
+    def compute_generator_loss(self, fake_samples) -> torch.Tensor:
         pass
 
     def training_step(self, batch, batch_idx):
-        g_opt, d_opt = self.optimizers()
+        g_opt, d_opt = self.optimizers()  # type: ignore
 
         z = torch.randn(batch.shape[0], self.latent_dim, device=self.device)
         generated_data = self(z).detach()
@@ -213,7 +216,7 @@ class BaseGAN(L.LightningModule, ABC):
         plt.tight_layout()
 
         # Log the figure to the logger before saving
-        self.trainer.logger.experiment.add_figure(
+        self.trainer.logger.experiment.add_figure(  # type: ignore
             "distribution_comparison",
             plt.gcf(),
             close=False,
