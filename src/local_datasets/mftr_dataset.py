@@ -1,4 +1,4 @@
-from local_distributions import MFTRDistribution
+from local_distributions import mftr
 from typing import Optional
 import torch
 
@@ -41,9 +41,7 @@ class MftrDataset:
         self.seed = seed
 
         # SciPy's rvs random_state compatibility varies by version; we pass seed as int for safety
-        mftr_gen = MFTRDistribution(
-            name="mftr", n_inverse_terms=2000, dist_type=self.dist_type
-        )
+        mftr_gen = mftr(name="mftr", n_inverse_terms=2000, dist_type=self.dist_type)
 
         samples = mftr_gen.rvs(
             self.m,

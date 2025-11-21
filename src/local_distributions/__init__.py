@@ -1,3 +1,3 @@
-from .mftr_dist import MFTRDistribution
+from .mftr_dist import mftr
 
-__all__ = ["MFTRDistribution"]
+__all__ = ["mftr"]

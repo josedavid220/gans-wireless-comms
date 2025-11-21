@@ -246,7 +246,7 @@ def gen_mftr_sim(
         raise ValueError("dist_type must be 'amplitude' or 'power'")
 
 
-class MFTRDistribution(rv_continuous):
+class mftr(rv_continuous):
     """
     MFTR distribution for POWER (gamma).
     Analytic _pdf and _cdf use self.n_inverse_terms for accuracy/speed control.
