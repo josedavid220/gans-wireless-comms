@@ -28,7 +28,7 @@ def get_args():
         type=str,
         default="rayleigh",
         help="Name of the target distribution",
-        choices=["rayleigh", "nakagami"],
+        choices=["rayleigh", "nakagami", "mftr"],
     )
 
     parser.add_argument(

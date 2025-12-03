@@ -1,5 +1,5 @@
 from gans import GAN, WGAN_GP
-from local_datasets import RayleighDataset, NakagamiDataset
+from local_datasets import RayleighDataset, NakagamiDataset, MftrDataset
 from torch.utils.data import DataLoader
 import lightning as L
 from lightning.pytorch.loggers import TensorBoardLogger
@@ -62,6 +62,8 @@ def get_dataset(num_samples, seed: int | None):
             dataset = RayleighDataset
         case "nakagami":
             dataset = NakagamiDataset
+        case "mftr":
+            dataset = MftrDataset
         case _:
             raise ValueError(f"Unsupported distribution: {DISTRIBUTION}")
 
