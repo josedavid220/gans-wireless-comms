@@ -95,7 +95,12 @@ class BaseGAN(L.LightningModule, ABC):
 
         # Generate samples for testing
         with torch.no_grad():
-            z = torch.randn(self.num_test_samples, self.latent_dim, device=self.device)
+            z = torch.randn(
+                self.num_test_samples,
+                self.latent_dim,
+                device=self.device,
+                generator=torch.Generator(device=self.device).manual_seed(42),
+            )
             samples = self(z).squeeze().cpu().numpy()
 
         # Perform GOF tests
