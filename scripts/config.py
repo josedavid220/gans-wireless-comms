@@ -89,6 +89,36 @@ def get_args():
         help="Number of workers to use",
     )
 
+    parser.add_argument(
+        "--lr_g",
+        type=float,
+        default=0.0002,
+        help="Learning rate for the generator optimizer",
+    )
+
+    parser.add_argument(
+        "--lr_d",
+        type=float,
+        default=0.0002,
+        help="Learning rate for the discriminator optimizer",
+    )
+
+    parser.add_argument(
+        "--betas_g",
+        type=float,
+        nargs=2,
+        default=(0.5, 0.999),
+        help="Betas for the generator optimizer",
+    )
+
+    parser.add_argument(
+        "--betas_d",
+        type=float,
+        nargs=2,
+        default=(0.5, 0.999),
+        help="Betas for the discriminator optimizer",
+    )
+
     # ------------------- Testing parameters -------------------
     parser.add_argument(
         "--num_test_samples",

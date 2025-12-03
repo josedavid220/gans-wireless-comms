@@ -15,6 +15,10 @@ class GAN(BaseGAN):
         distribution_name=None,
         distribution_params=None,
         num_test_samples=1000,
+        lr_g=0.0002,
+        lr_d=0.0002,
+        betas_g=(0.5, 0.999),
+        betas_d=(0.5, 0.999),
     ):
         super().__init__(
             latent_dim=latent_dim,
@@ -22,13 +26,14 @@ class GAN(BaseGAN):
             distribution_name=distribution_name,
             distribution_params=distribution_params,
             num_test_samples=num_test_samples,
+            lr_g=lr_g,
+            lr_d=lr_d,
+            betas_g=betas_g,
+            betas_d=betas_d,
         )
         self.generator = Generator(latent_dim)
         self.discriminator = Discriminator()
         self.criterion = nn.BCEWithLogitsLoss()  # more stable than BCELoss with sigmoid
-        # TODO: make these hyperparams configurable
-        self.lr = 0.0002
-        self.betas = (0.5, 0.999)
 
         self.save_hyperparameters()
         self.apply(self._init_weights)
@@ -49,10 +54,10 @@ class GAN(BaseGAN):
 
     def configure_optimizers(self):
         opt_g = torch.optim.Adam(
-            self.generator.parameters(), lr=self.lr, betas=self.betas
+            self.generator.parameters(), lr=self.lr_g, betas=self.betas_g
         )
         opt_d = torch.optim.Adam(
-            self.discriminator.parameters(), lr=self.lr, betas=self.betas
+            self.discriminator.parameters(), lr=self.lr_d, betas=self.betas_d
         )
         return opt_g, opt_d
 

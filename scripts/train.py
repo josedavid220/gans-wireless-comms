@@ -18,6 +18,10 @@ BATCH_SIZE = args.batch_size
 G_EVERY_K_STEPS = args.g_every_k_steps
 MAX_EPOCHS = args.epochs
 NUM_WORKERS = args.num_workers
+LR_G = args.lr_g
+LR_D = args.lr_d
+BETAS_G = tuple(args.betas_g)
+BETAS_D = tuple(args.betas_d)
 
 distribution_params = {}
 if args.distribution_params:
@@ -37,6 +41,10 @@ def get_model():
         "distribution_name": DISTRIBUTION,
         "distribution_params": distribution_params,
         "num_test_samples": NUM_TEST_SAMPLES,
+        "lr_g": LR_G,
+        "lr_d": LR_D,
+        "betas_g": BETAS_G,
+        "betas_d": BETAS_D,
     }
 
     match GAN_TYPE:

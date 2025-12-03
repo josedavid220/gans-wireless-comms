@@ -21,6 +21,10 @@ class BaseGAN(L.LightningModule, ABC):
         distribution_name=None,
         distribution_params=None,
         num_test_samples=1000,
+        lr_g=0.0002,
+        lr_d=0.0002,
+        betas_g=(0.5, 0.999),
+        betas_d=(0.5, 0.999),
     ):
         super().__init__()
         self.latent_dim = latent_dim
@@ -29,6 +33,10 @@ class BaseGAN(L.LightningModule, ABC):
         self.distribution_name = distribution_name
         self.distribution_params = distribution_params or {}
         self.num_test_samples = num_test_samples
+        self.lr_g = lr_g
+        self.lr_d = lr_d
+        self.betas_g = betas_g
+        self.betas_d = betas_d
 
         self.generator: nn.Module
         self.discriminator: nn.Module
