@@ -297,12 +297,6 @@ class mftr(rv_continuous):
         )
 
     def _rvs(self, m, K, delta, mu, omega, size=None, random_state=None):
-        # SciPy converts random_state to a legacy type, so we handle integers only
-        if isinstance(random_state, (int, np.integer)):
-            seed = int(random_state)
-        else:
-            seed = None
-
         # total samples
         n = int(np.prod(size)) if size is not None else 1
 
@@ -314,7 +308,7 @@ class mftr(rv_continuous):
             float(K),
             n,
             dist_type=self.dist_type,  # ← use stored dist_type
-            seed=seed,
+            seed=random_state,
         )
 
         # convert to amplitude if needed
