@@ -75,7 +75,7 @@ def get_dataset(num_samples, seed: int | None):
         case _:
             raise ValueError(f"Unsupported distribution: {DISTRIBUTION}")
 
-    return dataset(**dataset_params)
+    return dataset(**dataset_params, seed=seed)
 
 
 def get_dataloader(dataset, batch_size):
