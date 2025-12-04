@@ -5,6 +5,7 @@ import lightning as L
 from lightning.pytorch.loggers import TensorBoardLogger
 from config import get_args
 import json
+import numpy as np
 
 args = get_args()
 
@@ -82,6 +83,8 @@ def get_dataloader(dataset, batch_size):
     return DataLoader(dataset=dataset, batch_size=batch_size, num_workers=NUM_WORKERS)
 
 
+L.seed_everything(seed=42, workers=True)
+
 model = get_model()
 
 train_dataset = get_dataset(num_samples=NUM_SAMPLES, seed=42)
@@ -91,7 +94,16 @@ val_dataset = get_dataset(num_samples=NUM_SAMPLES_VAL, seed=0)
 val_dataloader = get_dataloader(val_dataset, batch_size=NUM_SAMPLES_VAL)
 
 logger = TensorBoardLogger(save_dir="../logs", name=f"{DISTRIBUTION}/{GAN_TYPE}")
-trainer = L.Trainer(max_epochs=MAX_EPOCHS, accelerator="auto", logger=logger)
+
+trainer = L.Trainer(
+    max_epochs=MAX_EPOCHS,
+    accelerator="auto",
+    logger=logger,
+    deterministic=True,
+    benchmark=False,
+    log_every_n_steps=np.ceil(len(train_dataset) / BATCH_SIZE).astype(int),
+)
+
 trainer.fit(
     model=model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader
 )
