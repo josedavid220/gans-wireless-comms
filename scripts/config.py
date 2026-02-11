@@ -142,3 +142,49 @@ def get_args():
     )
 
     return parser.parse_args()
+
+
+def get_cgan_args():
+    parser = argparse.ArgumentParser(
+        description="Train a CGAN on MFTR (conditional) samples"
+    )
+
+    parser.add_argument(
+        "--logs_dir",
+        type=str,
+        default="../logs",
+        help="Directory to save logs and model checkpoints",
+    )
+
+    parser.add_argument("--latent_dim", "-d", type=int, default=1000)
+    parser.add_argument("--cond_dim", type=int, default=5)
+    parser.add_argument("--cond_emb_dim", type=int, default=16)
+    parser.add_argument(
+        "--g_every_k_steps",
+        "-k",
+        type=int,
+        default=3,
+        help="Number of steps to wait for updating the generator",
+    )
+    parser.add_argument("--epochs", type=int, default=100)
+    parser.add_argument("--batch_size", type=int, default=128)
+    parser.add_argument("--num_workers", type=int, default=4)
+
+    parser.add_argument("--lr_g", type=float, default=0.0001)
+    parser.add_argument("--lr_d", type=float, default=0.0002)
+    parser.add_argument("--betas_g", type=float, nargs=2, default=(0.5, 0.999))
+    parser.add_argument("--betas_d", type=float, nargs=2, default=(0.5, 0.999))
+
+    parser.add_argument("--samples_per_combo", type=int, default=20000)
+    parser.add_argument("--val_samples_per_combo", type=int, default=1000)
+
+    # MFTR parameter grids
+    parser.add_argument("--mu_values", type=str)
+    parser.add_argument("--delta_values", type=str)
+    parser.add_argument("--m_values", type=str)
+    parser.add_argument("--K_values", type=str)
+    parser.add_argument("--omega_values", type=str)
+
+    parser.add_argument("--seed", type=int, default=42)
+
+    return parser.parse_args()
