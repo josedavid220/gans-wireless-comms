@@ -1,7 +1,7 @@
 """Tests for local dataset classes."""
 
 import torch
-from local_datasets import RayleighDataset, NakagamiDataset
+from local_datasets import RayleighDataset, NakagamiDataset, MftrConditionalDataset
 
 
 class TestRayleighDataset:
@@ -81,3 +81,77 @@ class TestNakagamiDataset:
 
         # Should be identical due to fixed seed
         torch.testing.assert_close(dataset1.samples, dataset2.samples)
+
+
+class TestMftrConditionalDataset:
+    def test_initialization(self):
+        samples_per_combo = 8
+        param_grid = {"mu": [2, 8], "delta": [0.2, 0.8]}
+        dataset = MftrConditionalDataset(
+            samples_per_combo=samples_per_combo,
+            param_grid=param_grid,
+            m=8,
+            K=8.0,
+            omega=2.0,
+            seed=0,
+        )
+
+        assert dataset.samples_per_combo == samples_per_combo
+        assert dataset.conds_raw.shape == (4, 5)
+        assert len(dataset) == 4 * samples_per_combo
+        assert dataset.samples.shape == (4 * samples_per_combo, 1)
+
+    def test_getitem(self):
+        samples_per_combo = 5
+        param_grid = {"mu": [2, 8], "delta": [0.2, 0.8]}
+        dataset = MftrConditionalDataset(
+            samples_per_combo=samples_per_combo,
+            param_grid=param_grid,
+            m=8,
+            K=8.0,
+            omega=2.0,
+            seed=0,
+        )
+
+        x0, c0 = dataset[0]
+        assert isinstance(x0, torch.Tensor)
+        assert x0.shape == (1,)
+        assert x0.dtype == torch.float32
+
+        assert isinstance(c0, torch.Tensor)
+        assert c0.shape == (5,)
+        assert c0.dtype == torch.float32
+
+        # First combo follows product order over keys ['mu', 'delta']
+        # cond order is [m, mu, K, delta, omega]
+        expected = torch.tensor([8.0, 2.0, 8.0, 0.2, 2.0], dtype=torch.float32)
+        torch.testing.assert_close(c0, expected)
+
+        # Item at the start of second combo should have same cond, different sample index
+        x1, c1 = dataset[samples_per_combo]
+        torch.testing.assert_close(c1, dataset.conds_raw[1])
+        assert x1.shape == (1,)
+
+    def test_reproducibility(self):
+        samples_per_combo = 6
+        param_grid = {"mu": [2, 8], "delta": [0.2, 0.8]}
+
+        dataset1 = MftrConditionalDataset(
+            samples_per_combo=samples_per_combo,
+            param_grid=param_grid,
+            m=8,
+            K=8.0,
+            omega=2.0,
+            seed=123,
+        )
+        dataset2 = MftrConditionalDataset(
+            samples_per_combo=samples_per_combo,
+            param_grid=param_grid,
+            m=8,
+            K=8.0,
+            omega=2.0,
+            seed=123,
+        )
+
+        torch.testing.assert_close(dataset1.samples, dataset2.samples)
+        torch.testing.assert_close(dataset1.conds_raw, dataset2.conds_raw)
