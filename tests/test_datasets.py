@@ -1,7 +1,12 @@
 """Tests for local dataset classes."""
 
 import torch
-from local_datasets import RayleighDataset, NakagamiDataset, MftrConditionalDataset
+from local_datasets import (
+    RayleighDataset,
+    NakagamiDataset,
+    MftrConditionalDataset,
+    MftrUniformConditionalDataset,
+)
 
 
 class TestRayleighDataset:
@@ -155,3 +160,103 @@ class TestMftrConditionalDataset:
 
         torch.testing.assert_close(dataset1.samples, dataset2.samples)
         torch.testing.assert_close(dataset1.conds_raw, dataset2.conds_raw)
+
+
+class TestMftrUniformConditionalDataset:
+    def test_initialization_and_ranges(self):
+        samples_per_combo = 7
+        combos = 9
+        m_range = (2.0, 10.0)
+        mu_range = (1.2, 5.7)
+        K_range = (0.0, 12.0)
+        delta_range = (0.1, 0.95)
+        omega_range = (0.5, 3.0)
+
+        dataset = MftrUniformConditionalDataset(
+            samples_per_combo=samples_per_combo,
+            combos=combos,
+            m=m_range,
+            mu=mu_range,
+            K=K_range,
+            delta=delta_range,
+            omega=omega_range,
+            dist_type="amplitude",
+            seed=0,
+        )
+
+        assert dataset.samples_per_combo == samples_per_combo
+        assert dataset.combos == combos
+        assert dataset.conds_raw.shape == (combos, 5)
+        assert len(dataset) == combos * samples_per_combo
+        assert dataset.samples.shape == (combos * samples_per_combo, 1)
+
+        m_vals = dataset.conds_raw[:, 0]
+        mu_vals = dataset.conds_raw[:, 1]
+        K_vals = dataset.conds_raw[:, 2]
+        delta_vals = dataset.conds_raw[:, 3]
+        omega_vals = dataset.conds_raw[:, 4]
+
+        assert torch.all((m_vals >= m_range[0]) & (m_vals <= m_range[1]))
+        assert torch.all((mu_vals >= mu_range[0]) & (mu_vals <= mu_range[1]))
+        assert torch.all((K_vals >= K_range[0]) & (K_vals <= K_range[1]))
+        assert torch.all(
+            (delta_vals >= delta_range[0]) & (delta_vals <= delta_range[1])
+        )
+        assert torch.all(
+            (omega_vals >= omega_range[0]) & (omega_vals <= omega_range[1])
+        )
+
+        # With uniform sampling + fixed seed, values should not all be integers.
+        assert not torch.allclose(m_vals, m_vals.round())
+        assert not torch.allclose(mu_vals, mu_vals.round())
+
+    def test_getitem(self):
+        samples_per_combo = 4
+        combos = 3
+        dataset = MftrUniformConditionalDataset(
+            samples_per_combo=samples_per_combo,
+            combos=combos,
+            m=(2.0, 3.0),
+            mu=(1.1, 2.3),
+            seed=123,
+        )
+
+        x0, c0 = dataset[0]
+        assert isinstance(x0, torch.Tensor)
+        assert x0.shape == (1,)
+        assert x0.dtype == torch.float32
+
+        assert isinstance(c0, torch.Tensor)
+        assert c0.shape == (5,)
+        assert c0.dtype == torch.float32
+
+        # Index at the start of the second combo should return the 2nd condition row
+        _, c1 = dataset[samples_per_combo]
+        torch.testing.assert_close(c1, dataset.conds_raw[1])
+
+    def test_reproducibility(self):
+        samples_per_combo = 5
+        combos = 6
+        m_range = (2.0, 10.0)
+        mu_range = (1.2, 5.7)
+        delta_range = (0.1, 0.95)
+
+        dataset1 = MftrUniformConditionalDataset(
+            samples_per_combo=samples_per_combo,
+            combos=combos,
+            m=m_range,
+            mu=mu_range,
+            delta=delta_range,
+            seed=999,
+        )
+        dataset2 = MftrUniformConditionalDataset(
+            samples_per_combo=samples_per_combo,
+            combos=combos,
+            m=m_range,
+            mu=mu_range,
+            delta=delta_range,
+            seed=999,
+        )
+
+        torch.testing.assert_close(dataset1.conds_raw, dataset2.conds_raw)
+        torch.testing.assert_close(dataset1.samples, dataset2.samples)
