@@ -83,10 +83,10 @@ def _phi2(
 
 def pdf_mftr(
     power_vals: np.ndarray,
-    m: int,
+    m: float,
     K: float,
     delta: float,
-    mu: int,
+    mu: float,
     omega: float,
     n_inverse_terms: int = DEFAULT_INV_TERMS,
 ) -> np.ndarray:
@@ -136,10 +136,10 @@ def pdf_mftr(
 
 def cdf_mftr(
     power_vals: np.ndarray,
-    m: int,
+    m: float,
     K: float,
     delta: float,
-    mu: int,
+    mu: float,
     omega: float,
     n_inverse_terms: int = DEFAULT_INV_TERMS,
 ) -> np.ndarray:
@@ -185,8 +185,8 @@ def cdf_mftr(
 
 
 def gen_mftr_sim(
-    m: int,
-    mu: int,
+    m: float,
+    mu: float,
     delta: float,
     K: float,
     n_samples: int,
@@ -202,25 +202,29 @@ def gen_mftr_sim(
     rng = np.random.default_rng(seed)
 
     gb = 1.0
-    sig = np.sqrt(gb / np.sqrt(2.0 * mu * (1.0 + K)))
-    b = (sig**2) * mu * K
+    mu_eff = float(mu)
+    mu_clusters = int(max(1, round(mu_eff)))
+
+    sig = np.sqrt(gb / np.sqrt(2.0 * mu_eff * (1.0 + K)))
+    b = (sig**2) * mu_eff * K
     sqrt_term = math.sqrt(max(0.0, 1.0 - delta**2))
     v1 = math.sqrt(b * (1.0 + sqrt_term))
     v2 = math.sqrt(b * (1.0 - sqrt_term))
 
     # z ~ Nakagami(m, scale=1). We can sample via gamma: z^2 ~ Gamma(m, scale=1/m)
     # so z = sqrt(Gamma(...))
-    gam = rng.gamma(shape=m, scale=1.0 / m, size=n_samples)
+    m_eff = float(m)
+    gam = rng.gamma(shape=m_eff, scale=1.0 / m_eff, size=n_samples)
     z = np.sqrt(gam)
 
     phi1 = rng.random(n_samples) * 2.0 * np.pi
     phi2 = rng.random(n_samples) * 2.0 * np.pi
 
     # sum of clusters (mu-1), vectorized:
-    if mu - 1 > 0:
+    if mu_clusters - 1 > 0:
         # gaussian components with variance sig^2
-        x_clusters = rng.normal(0.0, scale=sig, size=(mu - 1, n_samples))
-        y_clusters = rng.normal(0.0, scale=sig, size=(mu - 1, n_samples))
+        x_clusters = rng.normal(0.0, scale=sig, size=(mu_clusters - 1, n_samples))
+        y_clusters = rng.normal(0.0, scale=sig, size=(mu_clusters - 1, n_samples))
         clus = np.sum(x_clusters**2 + y_clusters**2, axis=0)
     else:
         clus = np.zeros(n_samples)
@@ -235,7 +239,7 @@ def gen_mftr_sim(
     h = term1 + term2 + clus
 
     # normalization to unit average power
-    denom = v1**2 + v2**2 + 2.0 * mu * (sig**2)
+    denom = v1**2 + v2**2 + 2.0 * mu_eff * (sig**2)
     h = h / denom
 
     if dist_type == "amplitude":
@@ -275,10 +279,10 @@ class mftr(rv_continuous):
         x_pos = np.maximum(x, np.finfo(float).tiny)
         return pdf_mftr(
             x_pos,
-            int(m),
+            float(m),
             float(K),
             float(delta),
-            int(mu),
+            float(mu),
             float(omega),
             n_inverse_terms=self.n_inverse_terms,
         )
@@ -288,10 +292,10 @@ class mftr(rv_continuous):
         x_pos = np.maximum(x, 0.0)
         return cdf_mftr(
             x_pos,
-            int(m),
+            float(m),
             float(K),
             float(delta),
-            int(mu),
+            float(mu),
             float(omega),
             n_inverse_terms=self.n_inverse_terms,
         )
@@ -302,8 +306,8 @@ class mftr(rv_continuous):
 
         # call your physical-model sampler
         samples = gen_mftr_sim(
-            int(m),
-            int(mu),
+            float(m),
+            float(mu),
             float(delta),
             float(K),
             n,

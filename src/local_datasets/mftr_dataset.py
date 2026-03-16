@@ -13,8 +13,8 @@ class MftrDataset:
     def __init__(
         self,
         num_samples: int,
-        m: int = 8,
-        mu: int = 7,
+        m: float = 8.0,
+        mu: float = 7.0,
         K: float = 8.0,
         delta: float = 0.9,
         omega: float = 2.0,
@@ -30,8 +30,8 @@ class MftrDataset:
         """
 
         self.num_samples = int(num_samples)
-        self.m = int(m)
-        self.mu = int(mu)
+        self.m = float(m)
+        self.mu = float(mu)
         self.K = float(K)
         self.delta = float(delta)
         self.omega = float(omega)

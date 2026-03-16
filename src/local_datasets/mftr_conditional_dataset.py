@@ -14,8 +14,8 @@ class MftrConditionalDataset(Dataset):
         self,
         samples_per_combo: int,
         param_grid: dict[str, list] | None = None,
-        m: int = 8,
-        mu: int = 7,
+        m: float = 8.0,
+        mu: float = 7.0,
         K: float = 8.0,
         delta: float = 0.9,
         omega: float = 2.0,
@@ -25,8 +25,8 @@ class MftrConditionalDataset(Dataset):
         self.seed = seed
 
         defaults = {
-            "m": int(m),
-            "mu": int(mu),
+            "m": float(m),
+            "mu": float(mu),
             "K": float(K),
             "delta": float(delta),
             "omega": float(omega),
@@ -56,10 +56,10 @@ class MftrConditionalDataset(Dataset):
         samples_all = []
         for i, c in enumerate(combos):
             s = mftr_gen.rvs(
-                int(c["m"]),
+                float(c["m"]),
                 float(c["K"]),
                 float(c["delta"]),
-                int(c["mu"]),
+                float(c["mu"]),
                 float(c["omega"]),
                 size=self.samples_per_combo,
                 random_state=None if seed is None else int(seed) + i,
