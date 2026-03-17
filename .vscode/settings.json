@@ -1,0 +1,46 @@
+{
+  "latex-workshop.latex.outDir": "%DIR%/build",
+  "latex-workshop.latex.tools": [
+    {
+      "name": "latexmk-pdflatex",
+      "command": "/home/docampor/bin/latexmk",
+      "args": [
+        "-pdf",
+        "-outdir=%OUTDIR%",
+        "-auxdir=%OUTDIR%",
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "%DOC%"
+      ]
+    },
+    {
+      "name": "latexmk-xelatex",
+      "command": "/home/docampor/bin/latexmk",
+      "args": [
+        "-xelatex",
+        "-outdir=%OUTDIR%",
+        "-auxdir=%OUTDIR%",
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "%DOC%"
+      ]
+    }
+  ],
+  "latex-workshop.latex.recipes": [
+    {
+      "name": "latexmk (pdflatex)",
+      "tools": ["latexmk-pdflatex"]
+    },
+    {
+      "name": "latexmk (xelatex)",
+      "tools": ["latexmk-xelatex"]
+    }
+  ],
+  "latex-workshop.latex.recipe.default": "latexmk (pdflatex)",
+  "latex-workshop.latex.autoBuild.run": "onFileChange",
+  "latex-workshop.latexindent.path": "/home/docampor/bin/latexindent",
+  "latex-workshop.view.pdf.viewer": "tab",
+  "latex-workshop.view.pdf.ref.viewer": "tab"
+}
