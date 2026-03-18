@@ -175,15 +175,75 @@ def get_cgan_args():
     parser.add_argument("--betas_g", type=float, nargs=2, default=(0.5, 0.999))
     parser.add_argument("--betas_d", type=float, nargs=2, default=(0.5, 0.999))
 
+    parser.add_argument(
+        "--val_metric_max_samples",
+        type=int,
+        default=20000,
+        help="Max validation samples (pooled across ranks) used to compute val_wasserstein.",
+    )
+
     parser.add_argument("--samples_per_combo", type=int, default=20000)
     parser.add_argument("--val_samples_per_combo", type=int, default=1000)
 
-    # MFTR parameter grids
-    parser.add_argument("--mu_values", type=str)
-    parser.add_argument("--delta_values", type=str)
-    parser.add_argument("--m_values", type=str)
-    parser.add_argument("--K_values", type=str)
-    parser.add_argument("--omega_values", type=str)
+    # MFTR parameter ranges (JSON arrays like "[2.0, 10.0]")
+    parser.add_argument("--combos", type=int, default=64)
+    parser.add_argument("--val_combos", type=int, default=None)
+
+    parser.add_argument("--m_range", type=str, default="[8.0, 8.0]")
+    parser.add_argument("--mu_range", type=str, default="[7.0, 7.0]")
+    parser.add_argument("--K_range", type=str, default="[8.0, 8.0]")
+    parser.add_argument("--delta_range", type=str, default="[0.9, 0.9]")
+    parser.add_argument("--omega_range", type=str, default="[2.0, 2.0]")
+
+    parser.add_argument(
+        "--normalize_conds",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="If true, normalize MFTR condition parameters to [-1, 1] using the training ranges.",
+    )
+
+    parser.add_argument(
+        "--dist_type",
+        type=str,
+        default="amplitude",
+        choices=["amplitude", "power"],
+        help="Whether MFTR samples are amplitudes or powers",
+    )
+
+    # Evaluation (end-of-training)
+    parser.add_argument(
+        "--eval_max_mixture_samples",
+        type=int,
+        default=50000,
+        help="Max number of mixture samples to use for end-of-training mixture evaluation",
+    )
+    parser.add_argument(
+        "--eval_num_params_in",
+        type=int,
+        default=5,
+        help="Number of in-range parameter sets to visualize/evaluate",
+    )
+    parser.add_argument(
+        "--eval_num_params_out",
+        type=int,
+        default=5,
+        help="Number of out-of-range parameter sets to visualize/evaluate",
+    )
+    parser.add_argument(
+        "--eval_num_samples_per_param",
+        type=int,
+        default=5000,
+        help="Number of samples to draw for each per-parameter evaluation",
+    )
+
+    parser.add_argument(
+        "--eval_save_per_experiment_images",
+        action="store_true",
+        help=(
+            "If set, also saves one image per conditional experiment under "
+            "test_results/conditional_interpolation/ and test_results/conditional_extrapolation/"
+        ),
+    )
 
     parser.add_argument("--seed", type=int, default=42)
 
