@@ -30,14 +30,24 @@ IEEE_DOUBLE_COL_IN = 7.16
 
 
 def _maybe_apply_ieee_style() -> None:
-    """Apply repo-wide IEEE Matplotlib style if available."""
+    """Apply repo-wide IEEE Matplotlib style if available.
+
+    We resolve the style file path directly to avoid import/path issues.
+    """
+
+    def _find_repo_root(start: Path) -> Path:
+        start = start.resolve()
+        for parent in (start, *start.parents):
+            if (parent / "pyproject.toml").exists():
+                return parent
+        return start
 
     try:
-        from ieee_plot_style import apply_ieee_style, find_repo_root
-
-        apply_ieee_style(find_repo_root(Path(__file__).resolve()))
+        repo_root = _find_repo_root(Path(__file__).resolve())
+        style_path = repo_root / "report" / "ieee.mplstyle"
+        if style_path.exists():
+            plt.style.use(str(style_path))
     except Exception:
-        # If style isn't available for any reason, keep defaults.
         return
 
 
@@ -252,11 +262,11 @@ def sample_params_outside(ranges: MftrRanges, n: int, seed: int) -> torch.Tensor
         if width == 0.0:
             width = max(1e-3, abs(high) * 0.25)
 
-        # choose below or above with equal probability
+        # choose below or above with equal probability (strictly outside)
         if rng.random() < 0.5:
-            a, b = low - width, low
+            a, b = low - width, low - eps
         else:
-            a, b = high, high + width
+            a, b = high + eps, high + width
 
         if min_v is not None:
             a, b = max(a, min_v), max(b, min_v)
@@ -274,13 +284,47 @@ def sample_params_outside(ranges: MftrRanges, n: int, seed: int) -> torch.Tensor
         return float(rng.uniform(a, b))
 
     eps = 1e-6
+    mu_max_extrap = 15.66
+
+    def out_or_same(
+        low: float,
+        high: float,
+        *,
+        min_v: float | None = None,
+        max_v: float | None = None,
+    ) -> float:
+        if float(low) == float(high):
+            v = float(low)
+            if min_v is not None:
+                v = max(v, float(min_v))
+            if max_v is not None:
+                v = min(v, float(max_v))
+            return float(v)
+        return out_1d(low, high, min_v=min_v, max_v=max_v)
+
     conds = np.empty((int(n), 5), dtype=np.float32)
     for i in range(int(n)):
-        m = out_1d(*ranges.m, min_v=1.0)
-        mu = out_1d(*ranges.mu, min_v=1.0)
-        K = out_1d(*ranges.K, min_v=0.0)
-        delta = out_1d(*ranges.delta, min_v=0.0, max_v=1.0 - eps)
-        omega = out_1d(*ranges.omega, min_v=eps)
+        m = out_or_same(*ranges.m, min_v=1.0)
+        # For MFTR, SciPy enforces mu >= 1. Also, in our experiments the training
+        # range already includes mu=1; sampling "below" can collapse to the
+        # boundary and/or violate the distribution domain. For extrapolation,
+        # sample strictly above the training max.
+        if float(ranges.mu[0]) == float(ranges.mu[1]):
+            mu = float(ranges.mu[0])
+        else:
+            mu_low, mu_high = float(ranges.mu[0]), float(ranges.mu[1])
+            width = float(mu_high - mu_low)
+            if width == 0.0:
+                width = max(1e-3, abs(mu_high) * 0.25)
+            a = mu_high + eps
+            b = min(mu_high + width, mu_max_extrap)
+            if not (a < b):
+                mu = float(a)
+            else:
+                mu = float(rng.uniform(a, b))
+        K = out_or_same(*ranges.K, min_v=0.0)
+        delta = out_or_same(*ranges.delta, min_v=0.0, max_v=1.0 - eps)
+        omega = out_or_same(*ranges.omega, min_v=eps)
         conds[i] = np.array([m, mu, K, delta, omega], dtype=np.float32)
 
     return torch.tensor(conds, dtype=torch.float32)
@@ -470,21 +514,12 @@ def run_end_of_training_evaluation(
             squeeze=False,
         )
         fig.suptitle(f"Conditional eval — {label}", y=0.995)
-        fig.text(
-            0.5,
-            0.975,
-            _format_ranges(ranges),
-            ha="center",
-            va="top",
-        )
 
         for row, case in enumerate(cases):
             p = case["params"]
-            title = (
-                f"{label} #{case['index']:02d} — "
-                + _format_params(p["m"], p["mu"], p["K"], p["delta"], p["omega"])
-            )
-            _empirical_qq(axes[row, 0], case["tx"], case["ty"], title=title)
+            # Keep titles short (paper-friendly): only show mu.
+            short_title = f"{label} #{case['index']:02d} (\u03bc={p['mu']:.3f})"
+            _empirical_qq(axes[row, 0], case["tx"], case["ty"], title=short_title)
             _generated_hist_kde_vs_theoretical_pdf(
                 axes[row, 1],
                 case["ty"],
@@ -493,9 +528,16 @@ def run_end_of_training_evaluation(
                 K=p["K"],
                 delta=p["delta"],
                 omega=p["omega"],
-                title="Generated vs MFTR PDF",
+                title="",
                 show_legend=(row == 0),
             )
+
+            # Reduce repeated labels in the grid.
+            if row != n_rows - 1:
+                axes[row, 0].set_xlabel("")
+                axes[row, 1].set_xlabel("")
+            if row != (n_rows // 2):
+                axes[row, 0].set_ylabel("")
 
         fig.tight_layout(rect=(0, 0, 1, 0.955))
         fig.savefig(out_path, bbox_inches="tight")

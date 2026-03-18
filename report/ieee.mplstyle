@@ -1,0 +1,50 @@
+# IEEE-ish Matplotlib style (paper-friendly, small fonts, print-safe)
+
+# Figure / save
+figure.dpi: 300
+savefig.dpi: 300
+savefig.bbox: tight
+savefig.pad_inches: 0.02
+
+# Fonts (avoid hard dependency on LaTeX)
+font.family: serif
+font.serif: Times New Roman, Times, DejaVu Serif
+mathtext.fontset: dejavuserif
+text.usetex: False
+
+# Sizes (good defaults for IEEE two-column figures)
+font.size: 8
+axes.labelsize: 8
+axes.titlesize: 8
+legend.fontsize: 7
+xtick.labelsize: 7
+ytick.labelsize: 7
+
+# Lines
+lines.linewidth: 1.6
+lines.markersize: 3
+
+# Axes / grid
+axes.grid: True
+grid.alpha: 0.30
+grid.linewidth: 0.6
+grid.linestyle: -
+axes.axisbelow: True
+
+# Legend
+legend.frameon: True
+legend.fancybox: False
+legend.framealpha: 1.0
+legend.borderpad: 0.3
+legend.handlelength: 2.6
+
+# Ticks
+xtick.direction: in
+ytick.direction: in
+xtick.major.size: 3
+ytick.major.size: 3
+xtick.minor.size: 1.5
+ytick.minor.size: 1.5
+
+# Layout
+figure.autolayout: False
