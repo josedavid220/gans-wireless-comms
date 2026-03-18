@@ -1,0 +1,10 @@
+There are many things in the current work that could be improved or extended in the future. Here are some ideas:
+\begin{itemize}
+    \item Use the Wasserstein distance as a monitoring metric instead of loss values, which are not directly comparable between models and can be unstable. This would potentially allow for checkpointing and early stopping.
+    \item Explore other GAN loss functions, particularly the MMD GAN as it seems to produce better results \cite{zaheer2017gan}.
+    \item Add some type of normalization to the generator and discriminator outputs, such as batch normalization or layer normalization, which could help stabilize training and improve performance. Since we are dealing with a 1D distribution with a single feature, batch normalization seems most appropriate.
+    \item Experiment with the hyperparameters of the model, such as the learning rates, batch size, and architecture (number of layers and hidden units). A more systematic hyperparameter search could lead to better results, specially since the losses seem to be plateauing too early.
+    \item Repeat the experimet with real, experimental data instead of synthetic MFTR samples. This would be a more realistic test of the model's ability to capture the underlying distribution and generalize to new conditions.
+    \item Extend the model to handle multiple varying parameters at the same time, instead of just $\mu$. This would allow us to test the model's ability to learn more complex relationships between the parameters and the output distribution.
+    \item Explore other types of generative models, such as variational autoencoders (VAEs) or normalizing flows, which might be better suited for modeling complex distributions and could potentially provide better performance than GANs in this setting.
+\end{itemize}

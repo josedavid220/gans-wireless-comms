@@ -8,7 +8,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
+build/*
 develop-eggs/
 dist/
 downloads/
@@ -261,7 +261,7 @@ notebooks/*
 *blx.bib
 .bak 
 .mtc
-build/
+build/*
 *.fdb_latexmk
 *.xml
 *.fls
@@ -272,3 +272,6 @@ build/
 *.vrb
 *.log
 *.xdv
+
+# Allow PDF output of the report to be tracked
+!report/build/main.pdf
