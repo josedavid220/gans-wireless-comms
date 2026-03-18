@@ -67,7 +67,34 @@ class BaseCGAN(L.LightningModule, ABC):
         d_opt.zero_grad()
         self.manual_backward(d_loss)
         d_opt.step()
-        self.log("d_loss", d_loss, prog_bar=True, on_step=True, on_epoch=False)
+        self.log(
+            "d_loss",
+            d_loss,
+            prog_bar=True,
+            on_step=False,
+            on_epoch=True,
+            sync_dist=True,
+        )
+
+        with torch.no_grad():
+            real_prob = torch.sigmoid(self.discriminator(real_samples, cond)).mean()
+            fake_prob = torch.sigmoid(self.discriminator(generated_data, cond)).mean()
+        self.log(
+            "train_real_prob",
+            real_prob,
+            prog_bar=False,
+            on_step=False,
+            on_epoch=True,
+            sync_dist=True,
+        )
+        self.log(
+            "train_fake_prob",
+            fake_prob,
+            prog_bar=False,
+            on_step=False,
+            on_epoch=True,
+            sync_dist=True,
+        )
 
         if (batch_idx + 1) % self.g_every_k_steps == 0:
             z = torch.randn(real_samples.shape[0], self.latent_dim, device=self.device)
@@ -85,4 +112,11 @@ class BaseCGAN(L.LightningModule, ABC):
             for p in self.discriminator.parameters():
                 p.requires_grad_(True)
 
-            self.log("g_loss", g_loss, prog_bar=True, on_step=True, on_epoch=False)
+            self.log(
+                "g_loss",
+                g_loss,
+                prog_bar=True,
+                on_step=False,
+                on_epoch=True,
+                sync_dist=True,
+            )
