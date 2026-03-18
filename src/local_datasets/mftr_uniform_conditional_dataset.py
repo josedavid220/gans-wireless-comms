@@ -9,6 +9,39 @@ from torch.utils.data import Dataset
 from local_distributions import mftr
 
 
+def normalize_conds_minus1_1(
+    conds_raw: torch.Tensor,
+    ranges: tuple[
+        tuple[float, float],
+        tuple[float, float],
+        tuple[float, float],
+        tuple[float, float],
+        tuple[float, float],
+    ],
+) -> torch.Tensor:
+    """Min-max normalize MFTR condition parameters to [-1, 1].
+
+    Uses the fixed parameter ranges (typically the training ranges). If a
+    dimension has low==high, it becomes 0 in that dimension.
+
+    `ranges` order must be: (m, mu, K, delta, omega).
+    """
+
+    x = conds_raw.to(dtype=torch.float32)
+    if x.ndim != 2 or x.shape[1] != 5:
+        raise ValueError("conds_raw must have shape (N, 5)")
+
+    lows = torch.tensor([r[0] for r in ranges], dtype=torch.float32, device=x.device)
+    highs = torch.tensor([r[1] for r in ranges], dtype=torch.float32, device=x.device)
+    denom = highs - lows
+
+    # Avoid division by zero: if denom==0, map to 0 for that dim.
+    denom_safe = torch.where(denom == 0, torch.ones_like(denom), denom)
+    out = 2.0 * (x - lows) / denom_safe - 1.0
+    out = torch.where(denom == 0, torch.zeros_like(out), out)
+    return out
+
+
 class MftrUniformConditionalDataset(Dataset):
     """MFTR conditional dataset with uniformly sampled parameter combinations.
 
@@ -31,6 +64,7 @@ class MftrUniformConditionalDataset(Dataset):
         K: tuple[float, float] = (8.0, 8.0),
         delta: tuple[float, float] = (0.9, 0.9),
         omega: tuple[float, float] = (2.0, 2.0),
+        normalize_conds: bool = False,
         dist_type: str = "amplitude",
         seed: Optional[int] = None,
         conds_raw: Optional[torch.Tensor] = None,
@@ -46,6 +80,16 @@ class MftrUniformConditionalDataset(Dataset):
             raise ValueError("dist_type must be 'amplitude' or 'power'")
         self.dist_type = dist_type
         self.seed = seed
+
+        # Store ranges for optional normalization (even if conds_raw is injected).
+        self.ranges = (
+            (float(m[0]), float(m[1])),
+            (float(mu[0]), float(mu[1])),
+            (float(K[0]), float(K[1])),
+            (float(delta[0]), float(delta[1])),
+            (float(omega[0]), float(omega[1])),
+        )
+        self.normalize_conds = bool(normalize_conds)
 
         if conds_raw is not None:
             if not isinstance(conds_raw, torch.Tensor):
@@ -129,9 +173,15 @@ class MftrUniformConditionalDataset(Dataset):
 
         self.samples = torch.cat(samples_all, dim=0)
 
+        # Conditions returned by __getitem__ (raw or normalized).
+        if self.normalize_conds:
+            self.conds = normalize_conds_minus1_1(self.conds_raw, self.ranges)
+        else:
+            self.conds = self.conds_raw
+
     def __len__(self) -> int:
         return self.samples.shape[0]
 
     def __getitem__(self, idx: int):
         combo_idx = idx // self.samples_per_combo
-        return self.samples[idx], self.conds_raw[combo_idx]
+        return self.samples[idx], self.conds[combo_idx]
