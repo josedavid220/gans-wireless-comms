@@ -59,6 +59,24 @@ Training outputs/logs go under [logs/](logs/).
 - Training curves (losses + discriminator probabilities) for version\_16:
 	- `uv run python scripts/plot_version16_training_curves.py`
 
+## Interactive Gradio app
+A lightweight interactive page is available to:
+- summarize the project (goal, architecture, references, tried methods, next steps), and
+- run conditional MFTR comparisons for curated trained versions.
+
+Run it with :
+- `make run` to run the app in production mode and create a public sharing url
+- `make dev` to setup hot reloading
+
+Then access the app locally in `localhost:7860`.
+
+Main app modules:
+- [main.py](main.py): UI layout and callbacks
+- [src/app/artifacts.py](src/app/artifacts.py): model-version discovery and metadata cards
+- [src/app/inference.py](src/app/inference.py): checkpoint loading, generation, and metrics
+- [src/app/plots.py](src/app/plots.py): QQ and distribution comparison plots + diagrams
+- [src/app/content.py](src/app/content.py): concise overview text blocks
+
 ## Results snapshot (from the latest MFTR cGAN run)
 - In-range conditional generation (interpolation) matches the theoretical MFTR reference closely.
 - Extrapolation beyond the training range is **less reliable**, with similar median errors but larger **worst-case** discrepancies at larger $\mu$.

@@ -1,4 +1,4 @@
-.PHONY: test lint format build
+.PHONY: test lint format build run
 
 train-rayleigh:
 	cd scripts && \
@@ -94,3 +94,9 @@ tensorboard:
 
 clean:
 	rm -rf logs/* || true && rm -rf results/tests/* || true
+
+run:
+	uv run python main.py --share
+
+dev:
+	uv run gradio main.py
