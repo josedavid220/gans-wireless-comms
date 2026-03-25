@@ -19,16 +19,16 @@ CURATED_VERSIONS = [
     "version_16",
 ]
 
-# Broad input bounds used when extrapolation is enabled.
-EXTRAPOLATION_BOUNDS = {
-    "m": (1.0, 16.0),
-    "mu": (1.0, 15.66),
+# Fixed slider bounds used in the UI.
+UI_PARAM_BOUNDS = {
+    "m": (1.0, 10.0),
+    "mu": (1.0, 15.0),
     "K": (0.0, 20.0),
     "delta": (0.0, 0.999),
-    "omega": (0.2, 4.0),
+    "omega": (1.0, 2.0),
 }
 
 # Runtime defaults
 DEFAULT_NUM_SAMPLES = 10_000
 DEFAULT_SEED = 42
-DEFAULT_BATCH_SIZE = 512
+DEFAULT_BATCH_SIZE = 2048

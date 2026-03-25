@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from functools import lru_cache
 from typing import Any
+import warnings
 
 import numpy as np
 import torch
-from scipy.stats import cramervonmises_2samp, ks_2samp, wasserstein_distance
+from scipy.spatial.distance import jensenshannon
+from scipy.stats import anderson_ksamp, cramervonmises_2samp, ks_2samp, wasserstein_distance
 
 from cgans import CGAN
 from local_distributions import mftr
@@ -41,13 +43,33 @@ def mftr_sampler(dist_type: str):
     return mftr(name="mftr", n_inverse_terms=2000, dist_type=dist_type)
 
 
+def _common_hist_density(x: np.ndarray, y: np.ndarray, bins: int = 256) -> tuple[np.ndarray, np.ndarray]:
+    lo = float(min(np.min(x), np.min(y)))
+    hi = float(max(np.max(x), np.max(y)))
+    if not np.isfinite(lo) or not np.isfinite(hi) or hi <= lo:
+        hi = lo + 1e-6
+    edges = np.linspace(lo, hi, int(bins) + 1)
+    px, _ = np.histogram(x, bins=edges, density=True)
+    py, _ = np.histogram(y, bins=edges, density=True)
+
+    eps = 1e-12
+    px = px.astype(float) + eps
+    py = py.astype(float) + eps
+    px /= px.sum()
+    py /= py.sum()
+    return px, py
+
+
 def _metrics_two_sample(x: np.ndarray, y: np.ndarray) -> dict[str, float]:
     n = min(len(x), len(y))
-    xs = np.sort(x)[:n]
-    ys = np.sort(y)[:n]
+    x = np.asarray(x[:n], dtype=float)
+    y = np.asarray(y[:n], dtype=float)
 
     ks = ks_2samp(x, y)
     cvm = cramervonmises_2samp(x, y)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        ad = anderson_ksamp([x, y])
 
     ks_stat = getattr(ks, "statistic", None)
     ks_pvalue = getattr(ks, "pvalue", None)
@@ -57,14 +79,26 @@ def _metrics_two_sample(x: np.ndarray, y: np.ndarray) -> dict[str, float]:
     ks_stat_f = float(np.asarray(ks_stat).reshape(()).item())
     ks_pvalue_f = float(np.asarray(ks_pvalue).reshape(()).item())
 
+    ad_stat = float(np.asarray(getattr(ad, "statistic", ad[0])).reshape(()).item())
+    ad_pvalue = getattr(ad, "pvalue", None)
+    if ad_pvalue is None:
+        ad_sig = float(np.asarray(getattr(ad, "significance_level", 0.0)).reshape(()).item())
+        ad_pvalue = ad_sig / 100.0
+
+    px, py = _common_hist_density(x, y)
+    js_divergence = float(jensenshannon(px, py) ** 2)
+    hellinger = float(np.sqrt(0.5 * np.sum((np.sqrt(px) - np.sqrt(py)) ** 2)))
+
     return {
         "n": float(n),
-        "mae": float(np.mean(np.abs(xs - ys))),
-        "mse": float(np.mean((xs - ys) ** 2)),
         "ks_stat": ks_stat_f,
         "ks_pvalue": ks_pvalue_f,
         "cvm_stat": float(cvm.statistic),
         "cvm_pvalue": float(cvm.pvalue),
+        "ad_stat": ad_stat,
+        "ad_pvalue": float(np.asarray(ad_pvalue).reshape(()).item()),
+        "js_divergence": js_divergence,
+        "hellinger": hellinger,
         "wasserstein": float(wasserstein_distance(x, y)),
     }
 
@@ -114,7 +148,7 @@ def run_comparison(
     gen = torch.Generator(device=device).manual_seed(int(seed))
 
     outputs = []
-    with torch.no_grad():
+    with torch.inference_mode():
         for start in range(0, int(n_samples), int(batch_size)):
             c = conds_rep[start : start + int(batch_size)].to(device)
             z = torch.randn(c.shape[0], int(model.latent_dim), device=device, generator=gen)
@@ -141,12 +175,18 @@ def run_comparison(
 def metrics_table(metrics: dict[str, float]) -> list[list[Any]]:
     if not metrics:
         return []
+
+    def r5(x: float) -> str:
+        return f"{x:.5e}"
+
     return [
-        ["MAE (quantiles)", metrics["mae"], "Average absolute quantile gap"],
-        ["MSE (quantiles)", metrics["mse"], "Average squared quantile gap"],
-        ["KS statistic", metrics["ks_stat"], "Maximum ECDF distance"],
-        ["KS p-value", metrics["ks_pvalue"], "Significance for KS test"],
-        ["CvM statistic", metrics["cvm_stat"], "Integrated ECDF discrepancy"],
-        ["CvM p-value", metrics["cvm_pvalue"], "Significance for CvM test"],
-        ["Wasserstein", metrics["wasserstein"], "Earth mover distance (1D)"],
+        ["KS statistic", r5(metrics["ks_stat"]), "Maximum ECDF distance"],
+        ["KS p-value", r5(metrics["ks_pvalue"]), "Significance for KS test"],
+        ["CvM statistic", r5(metrics["cvm_stat"]), "Integrated ECDF mismatch"],
+        ["CvM p-value", r5(metrics["cvm_pvalue"]), "Significance for CvM test"],
+        ["AD statistic", r5(metrics["ad_stat"]), "Tail-sensitive two-sample discrepancy"],
+        ["AD p-value", r5(metrics["ad_pvalue"]), "Significance for AD two-sample test"],
+        ["JS divergence", r5(metrics["js_divergence"]), "Symmetric divergence between estimated densities"],
+        ["Hellinger distance", r5(metrics["hellinger"]), "Distance between estimated density distributions"],
+        ["Wasserstein", r5(metrics["wasserstein"]), "Earth mover distance (1D)"],
     ]
