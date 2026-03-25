@@ -96,7 +96,9 @@ clean:
 	rm -rf logs/* || true && rm -rf results/tests/* || true
 
 run:
+	cd src/app && \
 	uv run python main.py --share
 
 dev:
+	cd src/app && \
 	uv run gradio main.py

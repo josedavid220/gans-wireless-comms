@@ -71,7 +71,7 @@ Run it with :
 Then access the app locally in `localhost:7860`.
 
 Main app modules:
-- [main.py](main.py): UI layout and callbacks
+- [src/app/main.py](src/app/main.py): UI layout and callbacks
 - [src/app/artifacts.py](src/app/artifacts.py): model-version discovery and metadata cards
 - [src/app/inference.py](src/app/inference.py): checkpoint loading, generation, and metrics
 - [src/app/plots.py](src/app/plots.py): QQ and distribution comparison plots + diagrams

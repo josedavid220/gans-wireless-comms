@@ -26,7 +26,7 @@ Thus, our final goal is to generate samples that match the target envelope distr
 - Dataset built by **uniformly sampling parameter combinations** over configured ranges.
 - Current focused experiment: vary $\mu$ in training range $[1,9]$ (others fixed).
 - Training setup: BCE-with-logits, label smoothing, Adam, and more frequent D updates than G.
-- Evaluation: QQ + density/PDF overlays and metrics (MAE, MSE, KS, CvM, Wasserstein).
+- Evaluation: QQ + density/PDF/CDF overlays and metrics (KS, CvM, AD, Jensen-Shannon, Hellinger, Wasserstein).
 
 ## Main References
 1. [GAN connoisseur: Can GANs learn simple 1D parametric distributions](https://chunliangli.github.io/docs/dltp17gan.pdf)
