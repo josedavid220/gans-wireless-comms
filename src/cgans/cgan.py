@@ -138,5 +138,5 @@ class CGAN(BaseCGAN):
                 prog_bar=True,
                 on_step=False,
                 on_epoch=True,
-                sync_dist=False,
+                sync_dist=True,
             )
