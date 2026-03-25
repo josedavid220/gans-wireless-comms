@@ -60,8 +60,15 @@ class BaseCGAN(L.LightningModule, ABC):
 
         real_samples, cond = batch
 
+        # D step: keep G frozen and sample fakes without autograd tracking.
+        for p in self.generator.parameters():
+            p.requires_grad_(False)
+        for p in self.discriminator.parameters():
+            p.requires_grad_(True)
+
         z = torch.randn(real_samples.shape[0], self.latent_dim, device=self.device)
-        generated_data = self(z, cond).detach()
+        with torch.no_grad():
+            generated_data = self(z, cond)
 
         d_loss = self.compute_discriminator_loss(real_samples, generated_data, cond)
         d_opt.zero_grad()
@@ -97,13 +104,15 @@ class BaseCGAN(L.LightningModule, ABC):
         )
 
         if (batch_idx + 1) % self.g_every_k_steps == 0:
+            # G step: allow gradients through D ops but do not update D params.
+            for p in self.discriminator.parameters():
+                p.requires_grad_(False)
+            for p in self.generator.parameters():
+                p.requires_grad_(True)
+
             z = torch.randn(real_samples.shape[0], self.latent_dim, device=self.device)
             generated_data = self(z, cond)
             g_loss = self.compute_generator_loss(generated_data, cond)
-
-            # freeze D while updating G
-            for p in self.discriminator.parameters():
-                p.requires_grad_(False)
 
             g_opt.zero_grad()
             self.manual_backward(g_loss)
