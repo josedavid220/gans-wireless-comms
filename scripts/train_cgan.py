@@ -227,6 +227,7 @@ def main():
     model = CGAN(
         latent_dim=args.latent_dim,
         cond_dim=args.cond_dim,
+        cond_emb_dim=args.cond_emb_dim,
         g_every_k_steps=args.g_every_k_steps,
         distribution_name="mftr",
         val_metric_max_samples=int(args.val_metric_max_samples),
