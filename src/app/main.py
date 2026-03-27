@@ -16,9 +16,10 @@ from app.config import (
 from app.content import read_markdown
 from app.inference import metrics_table, run_comparison
 from app.plots import (
-    make_architecture_diagram,
     make_cdf_figure,
     make_density_figure,
+    make_discriminator_architecture_diagram,
+    make_generator_architecture_diagram,
     make_pipeline_diagram,
     make_qq_figure,
 )
@@ -173,10 +174,10 @@ def build_app() -> gr.Blocks:
                         gr.Markdown(read_markdown("overview.md"), latex_delimiters=LATEX_DELIMITERS)
                     with gr.Column(scale=5):
                         gr.Plot(value=make_pipeline_diagram, label="Pipeline")
-                        gr.Plot(
-                            value=make_architecture_diagram,
-                            label="Current architecture",
-                        )
+                        gr.HTML(value="<h3 style='color: #0f766e;'>Generator Architecture</h3>")
+                        gr.HTML(value=make_generator_architecture_diagram, label="Generator (torchview)")
+                        gr.HTML(value="<h3 style='color: #7c2d12;'>Discriminator Architecture</h3>")
+                        gr.HTML(value=make_discriminator_architecture_diagram, label="Discriminator (torchview)")
 
             with gr.Tab("Model in Action"):
                 with gr.Row(elem_classes=["wrap"]):

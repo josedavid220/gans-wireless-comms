@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+from functools import lru_cache
+
 from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 import numpy as np
 import seaborn as sns
+import torch
+from torchview import draw_graph
 
+from cgans.components import Discriminator, Generator
 from local_distributions.mftr_dist import pdf_mftr
 
 
@@ -162,44 +167,43 @@ def make_pipeline_diagram() -> Figure:
     return fig
 
 
-def make_architecture_diagram() -> Figure:
-    fig = Figure(figsize=(9.8, 4.6), dpi=150)
-    ax = fig.add_subplot(1, 1, 1)
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1)
-    ax.axis("off")
-    fig.patch.set_facecolor("white")
+def _svg_to_html(svg_text: str) -> str:
+    return (
+        "<div style='background:#fff;padding:8px;border:1px solid #e5e7eb;"
+        "border-radius:8px;overflow:auto;max-height:520px'>"
+        f"{svg_text}"
+        "</div>"
+    )
 
-    ax.text(0.15, 0.94, "Generator branch", fontsize=13, weight="bold", color="#0f766e")
-    ax.text(0.63, 0.94, "Discriminator branch", fontsize=13, weight="bold", color="#7c2d12")
 
-    _draw_box(ax, 0.03, 0.66, 0.18, 0.18, "Latent input\nz ~ N(0, I)", fc="#fff7ed", ec="#9a3412")
-    _draw_box(ax, 0.03, 0.36, 0.18, 0.18, "Condition\n[m, mu, K, delta, omega]", fc="#eff6ff", ec="#1d4ed8")
-    _draw_box(ax, 0.25, 0.36, 0.18, 0.18, "Condition\nembedding MLP", fc="#f8fafc")
-    _draw_box(ax, 0.25, 0.66, 0.18, 0.18, "Concat\n[z, emb]", fc="#f8fafc")
-    _draw_box(ax, 0.47, 0.66, 0.20, 0.18, "Generator MLP\n512 -> 256 -> 128 -> 1\nSoftplus output", fc="#ecfeff", ec="#0f766e")
+def _render_torchview_svg(*, model: torch.nn.Module, input_size: list[tuple[int, ...]], graph_name: str) -> str:
+    model_graph = draw_graph(
+        model,
+        input_size=input_size,
+        expand_nested=True,
+        graph_name=graph_name,
+        depth=2,
+    )
+    return model_graph.visual_graph.pipe(format="svg").decode("utf-8")
 
-    _draw_box(ax, 0.47, 0.12, 0.20, 0.18, "Sample x\n(real or generated)", fc="#fff7ed", ec="#9a3412")
-    _draw_box(ax, 0.71, 0.36, 0.18, 0.18, "Condition\nembedding MLP", fc="#f8fafc")
-    _draw_box(ax, 0.71, 0.66, 0.18, 0.18, "Concat\n[x, emb]", fc="#f8fafc")
-    _draw_box(ax, 0.91, 0.66, 0.08, 0.18, "Discriminator\nMLP\n512->256->128->1", fc="#fef2f2", ec="#7f1d1d")
 
-    arrows = [
-        ((0.21, 0.75), (0.25, 0.75)),
-        ((0.21, 0.45), (0.25, 0.45)),
-        ((0.43, 0.75), (0.47, 0.75)),
-        ((0.67, 0.75), (0.71, 0.75)),
-        ((0.67, 0.21), (0.71, 0.45)),
-        ((0.89, 0.75), (0.91, 0.75)),
-    ]
-    for (x0, y0), (x1, y1) in arrows:
-        ax.annotate(
-            "",
-            xy=(x1, y1),
-            xytext=(x0, y0),
-            arrowprops=dict(arrowstyle="->", lw=2.0, color="#111827"),
-        )
+@lru_cache(maxsize=1)
+def make_generator_architecture_diagram() -> str:
+    gen = Generator(latent_dim=100, cond_dim=5, cond_emb_dim=32)
+    svg_text = _render_torchview_svg(
+        model=gen,
+        input_size=[(1, 100), (1, 5)],
+        graph_name="Generator",
+    )
+    return _svg_to_html(svg_text)
 
-    ax.text(0.50, 0.58, "Generated sample is routed to D as fake input", ha="center", fontsize=10, color=PALETTE["ink"])
-    fig.tight_layout()
-    return fig
+
+@lru_cache(maxsize=1)
+def make_discriminator_architecture_diagram() -> str:
+    dis = Discriminator(cond_dim=5, cond_emb_dim=16)
+    svg_text = _render_torchview_svg(
+        model=dis,
+        input_size=[(1, 1), (1, 5)],
+        graph_name="Discriminator",
+    )
+    return _svg_to_html(svg_text)
