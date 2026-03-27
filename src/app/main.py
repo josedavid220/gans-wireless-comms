@@ -184,7 +184,7 @@ def build_app() -> gr.Blocks:
                         version_dd = gr.Dropdown(
                             choices=versions,
                             value=default_version,
-                            label="Model version (curated)",
+                            label="Model version",
                         )
                         model_card = gr.Markdown(model_card_markdown(default_art))
 

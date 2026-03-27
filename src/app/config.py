@@ -14,10 +14,27 @@ def find_repo_root(start: Path) -> Path:
 REPO_ROOT = find_repo_root(Path(__file__))
 LOGS_ROOT = REPO_ROOT / "logs" / "mftr" / "cgan"
 
-# Curated subset for v1 demo. Extend this list as needed.
-CURATED_VERSIONS = [
-    "version_16",
-]
+def _version_sort_key(name: str) -> tuple[int, str]:
+    try:
+        return (int(name.split("_", 1)[1]), name)
+    except (IndexError, ValueError):
+        return (-   1, name)
+
+
+def discover_versions(logs_root: Path) -> list[str]:
+    if not logs_root.exists():
+        return []
+
+    versions = [
+        p.name
+        for p in logs_root.iterdir()
+        if p.is_dir() and p.name.startswith("version_")
+    ]
+    return sorted(versions, key=_version_sort_key)
+
+
+# Auto-discovered from LOGS_ROOT.
+CURATED_VERSIONS = discover_versions(LOGS_ROOT)
 
 # Fixed slider bounds used in the UI.
 UI_PARAM_BOUNDS = {
