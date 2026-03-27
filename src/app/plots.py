@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 import numpy as np
@@ -45,7 +44,8 @@ def make_qq_figure(
     generated: np.ndarray,
 ) -> Figure:
     _apply_style()
-    fig, ax = plt.subplots(1, 1, figsize=(5.6, 4.4), dpi=150)
+    fig = Figure(figsize=(5.6, 4.4), dpi=150)
+    ax = fig.add_subplot(1, 1, 1)
 
     n = min(len(real), len(generated))
     xr = np.sort(real)[:n]
@@ -71,7 +71,8 @@ def make_density_figure(
     omega: float,
 ) -> Figure:
     _apply_style()
-    fig, ax = plt.subplots(1, 1, figsize=(5.9, 4.4), dpi=150)
+    fig = Figure(figsize=(5.9, 4.4), dpi=150)
+    ax = fig.add_subplot(1, 1, 1)
 
     sns.histplot(
         generated,
@@ -112,7 +113,8 @@ def _ecdf(a: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
 def make_cdf_figure(*, real: np.ndarray, generated: np.ndarray) -> Figure:
     _apply_style()
-    fig, ax = plt.subplots(1, 1, figsize=(5.9, 4.4), dpi=150)
+    fig = Figure(figsize=(5.9, 4.4), dpi=150)
+    ax = fig.add_subplot(1, 1, 1)
 
     xr, fr = _ecdf(real)
     xg, fg = _ecdf(generated)
@@ -134,7 +136,8 @@ def _draw_box(ax, x, y, w, h, text, fc="#f7fafc", ec="#334155", lw: float = 1.5)
 
 
 def make_pipeline_diagram() -> Figure:
-    fig, ax = plt.subplots(figsize=(9.8, 2.9), dpi=150)
+    fig = Figure(figsize=(9.8, 2.9), dpi=150)
+    ax = fig.add_subplot(1, 1, 1)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.axis("off")
@@ -160,7 +163,8 @@ def make_pipeline_diagram() -> Figure:
 
 
 def make_architecture_diagram() -> Figure:
-    fig, ax = plt.subplots(figsize=(9.8, 4.6), dpi=150)
+    fig = Figure(figsize=(9.8, 4.6), dpi=150)
+    ax = fig.add_subplot(1, 1, 1)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.axis("off")
