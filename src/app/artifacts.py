@@ -14,6 +14,7 @@ class VersionArtifacts:
     version_dir: Path
     checkpoint: Path | None
     hparams: dict[str, Any]
+    train_details: dict[str, Any]
     eval_metadata: dict[str, Any]
     conditional_metrics: dict[str, Any]
     status: str
@@ -21,6 +22,8 @@ class VersionArtifacts:
     @property
     def ranges(self) -> dict[str, tuple[float, float]]:
         r = self.eval_metadata.get("ranges", {})
+        if not r:
+            r = self.train_details.get("distribution", {}).get("parameter_ranges", {})
         out: dict[str, tuple[float, float]] = {}
         for k in ["m", "mu", "K", "delta", "omega"]:
             v = r.get(k, [0.0, 0.0])
@@ -118,6 +121,7 @@ def load_version_artifacts(version: str) -> VersionArtifacts:
     test_results = version_dir / "test_results"
 
     hparams = _load_hparams_yaml(version_dir / "hparams.yaml")
+    train_details = _load_json(version_dir / "train_details.json")
     eval_metadata = _load_json(test_results / "eval_metadata.json")
     conditional_metrics = _load_json(test_results / "conditional_metrics.json")
     checkpoint = _pick_checkpoint(version_dir)
@@ -130,6 +134,7 @@ def load_version_artifacts(version: str) -> VersionArtifacts:
         version_dir=version_dir,
         checkpoint=checkpoint,
         hparams=hparams,
+        train_details=train_details,
         eval_metadata=eval_metadata,
         conditional_metrics=conditional_metrics,
         status=status,
@@ -149,15 +154,25 @@ def _fmt_range(name: str, r: tuple[float, float]) -> str:
 
 
 def model_card_markdown(art: VersionArtifacts) -> str:
-    hp = art.hparams
+    hp = dict(art.hparams)
+    td = art.train_details
+    hp_td = td.get("training_hyperparameters", {})
+    hp = {**hp_td, **hp} if hp_td else hp
     r = art.ranges
 
     ckpt = str(art.checkpoint.name) if art.checkpoint else "Not found"
     status = "Complete" if art.status == "complete" else "Partial"
 
+    dl = td.get("dataloaders", {})
+    split = td.get("split", {})
+    ds_train = td.get("datasets", {}).get("train", {})
+    ds_val = td.get("datasets", {}).get("val", {})
+    platform = td.get("platform", {})
+
     rows = [
         f"### Model {art.version} ({status})",
         f"- **Checkpoint file**: {ckpt}",
+        f"- **Saved at (UTC)**: {td.get('saved_at_utc', 'N/A')}",
         "#### Architecture",
         f"- **Latent vector size**: {hp.get('latent_dim', 'N/A')}",
         f"- **Condition input size**: {hp.get('cond_dim', 'N/A')}",
@@ -168,12 +183,21 @@ def model_card_markdown(art: VersionArtifacts) -> str:
         f"- **Discriminator learning rate**: {hp.get('lr_d', 'N/A')}",
         f"- **Generator Adam betas**: {hp.get('betas_g', 'N/A')}",
         f"- **Discriminator Adam betas**: {hp.get('betas_d', 'N/A')}",
-        f"- **Condition normalization to [-1, 1]**: {art.eval_metadata.get('normalize_conds', 'N/A')}",
+        f"- **Condition normalization to [-1, 1]**: {ds_train.get('normalize_conds', hp.get('normalize_conds', art.eval_metadata.get('normalize_conds', 'N/A')))}",
+        "#### Data and split",
+        f"- **Train combos / val combos**: {split.get('train_combos', 'N/A')} / {split.get('val_combos', 'N/A')}",
+        f"- **Train samples per combo**: {ds_train.get('samples_per_combo', hp.get('samples_per_combo', 'N/A'))}",
+        f"- **Val samples per combo**: {ds_val.get('samples_per_combo', hp.get('val_samples_per_combo', 'N/A'))}",
+        f"- **Total train samples**: {ds_train.get('num_samples_total', 'N/A')}",
+        f"- **Batch size / workers**: {dl.get('batch_size', hp.get('batch_size', 'N/A'))} / {dl.get('num_workers', hp.get('num_workers', 'N/A'))}",
+        f"- **Validation batch size**: {dl.get('val_batch_size', 'N/A')}",
         "#### Parameter ranges used during training",
         _fmt_range("m", r["m"]),
         _fmt_range("mu", r["mu"]),
         _fmt_range("K", r["K"]),
         _fmt_range("delta", r["delta"]),
         _fmt_range("omega", r["omega"]),
+        "#### Runtime",
+        f"- **Python / Torch / Lightning**: {platform.get('python_version', 'N/A')} / {platform.get('torch_version', 'N/A')} / {platform.get('lightning_version', 'N/A')}",
     ]
     return "\n".join(rows)

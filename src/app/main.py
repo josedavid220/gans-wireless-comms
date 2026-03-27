@@ -9,6 +9,7 @@ from gradio.themes import Soft
 from app.artifacts import VersionArtifacts, load_registry, model_card_markdown
 from app.config import (
     CURATED_VERSIONS,
+    DEFAULT_TEST_PARAMS,
     DEFAULT_NUM_SAMPLES,
     DEFAULT_SEED,
     UI_PARAM_BOUNDS,
@@ -59,10 +60,8 @@ def _slider_settings(name: str, art: VersionArtifacts) -> tuple[float, float, fl
 
 
 def _default_param_value(art: VersionArtifacts, name: str) -> float:
-    lo, hi = art.ranges[name]
-    if lo == hi:
-        return float(lo)
-    return float((lo + hi) / 2.0)
+    _ = art
+    return float(DEFAULT_TEST_PARAMS[name])
 
 
 def _slider_update(name: str, art: VersionArtifacts):

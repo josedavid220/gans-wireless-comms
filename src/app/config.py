@@ -45,6 +45,14 @@ UI_PARAM_BOUNDS = {
     "omega": (1.0, 2.0),
 }
 
+DEFAULT_TEST_PARAMS = {
+    "m": 8.0,
+    "mu": 5.0,
+    "K": 9.0,
+    "delta": 0.9,
+    "omega": 1.0,
+}
+
 # Runtime defaults
 DEFAULT_NUM_SAMPLES = 10_000
 DEFAULT_SEED = 42
