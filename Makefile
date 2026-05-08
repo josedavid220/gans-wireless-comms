@@ -41,26 +41,25 @@ train-mftr:
 train-cgan-mftr:
 	cd scripts && \
 	uv run python train_cgan.py \
-	--epochs 150 \
-	--batch_size 512 \
+	--epochs 20 \
+	--batch_size 1024 \
 	--latent_dim 1024 \
-	--g_every_k_steps 2 \
+	--g_every_k_steps 3 \
 	--cond_dim 5 \
 	--cond_emb_dim 32 \
-	--samples_per_combo 10000 \
+	--samples_per_combo 1000 \
 	--val_samples_per_combo 1000 \
-	--combos 128 \
-	--val_combos 32 \
-	--m_range "[8, 8]" \
+	--combos 100000 \
+	--val_combos 128 \
+	--m_range "[1, 8]" \
 	--mu_range "[1, 9]" \
-	--K_range "[9, 9]" \
-	--delta_range "[0.9, 0.9]" \
-	--omega_range "[1, 1]" \
-	--num_workers 30 \
-	--lr_g 0.00028 \
-	--lr_d 0.00112 \
-	--betas_g 0.5 0.999 \
-	--val_metric_max_samples 5000
+	--K_range "[0, 20]" \
+	--delta_range "[0, 0.9]" \
+	--omega_range "[1, 2]" \
+	--num_workers 12 \
+	--lr_g 0.0002 \
+	--lr_d 0.0004 \
+	--betas_g 0.5 0.999
 
 test-gan:
 	cd scripts && \
